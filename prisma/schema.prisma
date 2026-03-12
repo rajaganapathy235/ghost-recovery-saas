@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id             String        @id @default(cuid())
+  name           String
+  niche          String?
+  whatsappStatus String?       @default("DISCONNECTED")
+  plan           String        @default("FREE")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  customers      Customer[]
+  recoveryLogs   RecoveryLog[]
+  services       Service[]
+}
+
+model Service {
+  id           String   @id @default(cuid())
+  name         String
+  price        Float
+  recoveryDays Int      @default(30)
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Customer {
+  id           String        @id @default(cuid())
+  phone        String
+  name         String?
+  lastVisit    DateTime      @default(now())
+  businessId   String
+  business     Business      @relation(fields: [businessId], references: [id])
+  recoveryLogs RecoveryLog[]
+
+  @@unique([phone, businessId])
+}
+
+model RecoveryLog {
+  id             String   @id @default(cuid())
+  sentAt         DateTime @default(now())
+  recoveredAt    DateTime?
+  revenueAmount  Float?
+  status         String   @default("SENT") // SENT, RECOVERED, EXPIRED
+  customerId     String
+  customer       Customer @relation(fields: [customerId], references: [id])
+  businessId     String
+  business       Business @relation(fields: [businessId], references: [id])
+}
