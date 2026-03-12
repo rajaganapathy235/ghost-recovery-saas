@@ -5,9 +5,11 @@ import { PrismaClient } from '@prisma/client'
 const prismaClientSingleton = () => {
   const connectionString = `${process.env.DATABASE_URL}`
   const pool = new Pool({ connectionString })
+  // @ts-ignore - Bypass version mismatch in @types/pg between Prisma adapter and local types
   const adapter = new PrismaPg(pool)
   return new PrismaClient({ adapter })
 }
+
 
 declare global {
   var prisma: undefined | ReturnType<typeof prismaClientSingleton>
