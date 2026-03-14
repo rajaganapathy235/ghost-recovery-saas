@@ -12,7 +12,7 @@ declare global {
     Go: any;
     getWhatsAppPairingCode?: (phone: string) => Promise<string>;
     loadGhostSession?: (session: string) => void;
-    saveGhostSession?: (session: string) => void;
+    saveGhostSession?: () => string;
     checkGhostLogin?: () => boolean;
     getLoggedInPhone?: () => string;
     sendGhostMessage?: (target: string, text: string) => Promise<string>;
