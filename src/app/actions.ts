@@ -250,8 +250,7 @@ export async function scheduleTestReminder(businessId: string, phone: string) {
         businessId,
         customerId: customer.id,
         status: 'SCHEDULED',
-        scheduledAt: scheduledTime,
-        sentAt: scheduledTime // For sorting purposes
+        sentAt: scheduledTime
       }
     });
 
@@ -268,7 +267,7 @@ export async function processDueReminders(businessId: string) {
       where: {
         businessId,
         status: 'SCHEDULED',
-        scheduledAt: { lte: new Date() }
+        sentAt: { lte: new Date() }
       },
       include: {
         customer: true
