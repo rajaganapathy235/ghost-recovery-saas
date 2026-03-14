@@ -20,11 +20,32 @@ import {
 
 export default function HomeContent() {
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
+
+  // Persistence Hook
+  useEffect(() => {
+    const savedId = localStorage.getItem('ghost_business_id');
+    if (savedId) {
+      setBusinessId(savedId);
+    }
+    setIsReady(true);
+  }, []);
+
+  const handleSetBusiness = (id: string | null) => {
+    setBusinessId(id);
+    if (id) {
+      localStorage.setItem('ghost_business_id', id);
+    } else {
+      localStorage.removeItem('ghost_business_id');
+    }
+  };
+
+  if (!isReady) return null; // Prevent flash of onboarding
 
   if (!businessId) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
-        <Onboarding onComplete={(id) => setBusinessId(id)} />
+        <Onboarding onComplete={(id) => handleSetBusiness(id)} />
       </div>
     );
   }
@@ -135,7 +156,7 @@ export default function HomeContent() {
         {/* Demo info */}
         <div className="pt-4 text-center">
            <button 
-              onClick={() => setBusinessId(null)}
+              onClick={() => handleSetBusiness(null)}
               className="text-[10px] text-muted-foreground/30 hover:text-rose-500 transition-colors uppercase tracking-widest font-bold"
             >
               Reset Environment
