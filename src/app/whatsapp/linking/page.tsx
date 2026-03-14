@@ -151,9 +151,11 @@ function WhatsAppLinkingContent() {
       await linkWhatsApp(businessId, phone);
       
       setStep(2);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Pairing Error:", err);
-      alert("Verification Failed: Engine connection lost. Please try again.");
+      const msg = typeof err === 'string' ? err : (err.message || "Unknown engine error");
+      setLoadStatus('error');
+      setErrorDetails(`Pairing Failed: ${msg}`);
     } finally {
       setLoading(false);
     }
