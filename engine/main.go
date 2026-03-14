@@ -47,23 +47,26 @@ func LogoutGhost(this js.Value, args []js.Value) interface{} {
     return "Not connected"
 }
 
-func SendMessage(this js.Value, args []js.Value) interface{} {
-	handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		resolve := args[0]
-		reject := args[1]
+func SendMessage(this js.Value, sendMessageArgs []js.Value) interface{} {
+	if len(sendMessageArgs) < 2 {
+		return js.Global().Get("Promise").Call("reject", "Error: Target and Message required")
+	}
+	target := sendMessageArgs[0].String()
+	messageText := sendMessageArgs[1].String()
 
-		if len(args) < 2 {
-			reject.Invoke("Error: Target and Message required")
-			return nil
-		}
-		target := args[0].String()
-		messageText := args[1].String()
+	handler := js.FuncOf(func(this js.Value, promiseArgs []js.Value) interface{} {
+		resolve := promiseArgs[0]
+		reject := promiseArgs[1]
 
 		go func() {
 			if client == nil || !client.IsConnected() {
 				reject.Invoke("Error: Engine not connected")
 				return
 			}
+
+			// 1. Settle Delay: Allow history sync to start before hogging the pipe
+			fmt.Println("Ghost: Settle delay for test message (2s)...")
+			time.Sleep(2 * time.Second)
 
 			recipient, err := types.ParseJID(target + "@s.whatsapp.net")
 			if err != nil {
