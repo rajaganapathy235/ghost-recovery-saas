@@ -12,6 +12,8 @@ const outfit = Outfit({
   subsets: ["latin"],
 });
 
+import PWAGuard from "@/components/PWAGuard";
+
 export const metadata: Metadata = {
   title: "Ghost Recovery | Premium Customer Recovery SaaS",
   description: "Recover ghost customers automatically with the power of WhatsApp.",
@@ -36,9 +38,11 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${outfit.variable} font-sans antialiased bg-background text-foreground`}
       >
-        <div className="relative min-h-screen">
-          {children}
-        </div>
+        <PWAGuard>
+          <div className="relative min-h-screen">
+            {children}
+          </div>
+        </PWAGuard>
       </body>
     </html>
   );

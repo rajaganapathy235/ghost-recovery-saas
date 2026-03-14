@@ -16,15 +16,24 @@ export default function Onboarding({ onComplete }: { onComplete: (businessId: st
   const [name, setName] = useState('');
   const [niche, setNiche] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleOnboard = async () => {
     if (!name || !niche) return;
     setLoading(true);
-    const res = await onboardBusiness(name, niche);
-    if (res.success && res.businessId) {
-      onComplete(res.businessId);
+    setError(null);
+    try {
+      const res = await onboardBusiness(name, niche);
+      if (res.success && res.businessId) {
+        onComplete(res.businessId);
+      } else {
+        setError(res.error || 'Failed to setup business. Please try again.');
+      }
+    } catch (err) {
+      setError('A connection error occurred. Check your network.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -99,6 +108,12 @@ export default function Onboarding({ onComplete }: { onComplete: (businessId: st
                 </button>
               ))}
             </div>
+
+            {error && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[10px] font-bold text-center animate-in fade-in zoom-in duration-300">
+                {error}
+              </div>
+            )}
 
             <div className="flex gap-3 pt-2">
               <button 
