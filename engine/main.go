@@ -38,6 +38,10 @@ func SendMessage(this js.Value, args []js.Value) interface{} {
 				return
 			}
 
+			// 1. Settle Delay: Allow history sync to start before hogging the pipe
+			fmt.Println("Ghost: Settle delay for test message (3s)...")
+			time.Sleep(3 * time.Second)
+
 			recipient, err := types.ParseJID(target + "@s.whatsapp.net")
 			if err != nil {
 				reject.Invoke(fmt.Sprintf("Invalid JID: %v", err))
@@ -139,6 +143,8 @@ func registerEventHandler(cli *whatsmeow.Client) {
 			fmt.Printf("Ghost ERR: Pairing failed: %v\n", v.Error)
 		case *events.Connected:
 			fmt.Println("Ghost: Connected to WhatsApp socket.")
+		case *events.HistorySync:
+			fmt.Println("Ghost: Initial History Sync in progress... (Syncing chats/messages)")
 		case *events.LoggedOut:
 			fmt.Println("Ghost: Logged out from WhatsApp.")
 		}
