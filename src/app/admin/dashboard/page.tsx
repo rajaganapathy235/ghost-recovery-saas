@@ -17,13 +17,18 @@ export default function AdminDashboard() {
   const [selectedBiz, setSelectedBiz] = useState('');
   const [testPhone, setTestPhone] = useState('');
   const [sending, setSending] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
     // Auth Check
-    if (localStorage.getItem('gh_admin_auth') !== 'true') {
+    const auth = localStorage.getItem('gh_admin_auth');
+    if (auth !== 'true') {
+      setIsAuthorized(false);
       router.push('/admin/login');
       return;
     }
+    
+    setIsAuthorized(true);
 
     const fetchData = async () => {
       const res = await getAdminData();
@@ -54,9 +59,12 @@ export default function AdminDashboard() {
     setSending(false);
   };
 
-  if (loading) return (
+  if (isAuthorized === null || isAuthorized === false || loading) return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-      <LucideLoader2 className="w-8 h-8 text-primary animate-spin" />
+      <div className="text-center space-y-4">
+        <LucideLoader2 className="w-8 h-8 text-primary animate-spin mx-auto" />
+        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Verifying Auth...</p>
+      </div>
     </div>
   );
 

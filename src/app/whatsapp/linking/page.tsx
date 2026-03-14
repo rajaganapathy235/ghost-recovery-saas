@@ -122,7 +122,7 @@ function WhatsAppLinkingContent() {
 
       // 2. Wait for Linker
       let retries = 0;
-      while (typeof window.Go !== 'function' && retries < 100) { // 10s timeout
+      while (typeof window.Go !== 'function' && retries < 450) { // 45s timeout
         await new Promise(r => setTimeout(r, 100));
         retries++;
       }
@@ -227,9 +227,19 @@ function WhatsAppLinkingContent() {
   // Auto-detect login success in Step 2
   useEffect(() => {
     if (step === 2) {
-      const interval = setInterval(() => {
+      const interval = setInterval(async () => {
         if (window.checkGhostLogin?.()) {
           console.log("Ghost: Pairing success detected via polling!");
+          
+          // Sync to database
+          try {
+            const cleanPhone = phone.replace(/\D/g, '');
+            await linkWhatsApp(businessId, cleanPhone);
+            console.log("Ghost: Database synced successfully.");
+          } catch (err) {
+            console.error("Ghost: Failed to sync link to DB:", err);
+          }
+
           setStep(3); 
           clearInterval(interval);
         }

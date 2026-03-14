@@ -168,11 +168,11 @@ func GetPairingCode(this js.Value, args []js.Value) interface{} {
 				}
 			}
 
-			fmt.Println("Ghost: Waiting for socket stabilization...")
-			maxWait := 30
+			fmt.Println("Ghost: Waiting for socket stabilization (Extended)...")
+			maxWait := 60 // 6 seconds
 			for i := 0; i < maxWait; i++ {
 				if client.IsConnected() {
-					time.Sleep(2000 * time.Millisecond)
+					time.Sleep(3000 * time.Millisecond) // Give more time for protocol shake
 					break
 				}
 				time.Sleep(100 * time.Millisecond)
