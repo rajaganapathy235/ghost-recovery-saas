@@ -27,17 +27,35 @@ function WhatsAppLinkingContent() {
   const initWasm = async () => {
     if (typeof window.getWhatsAppPairingCode === 'function') return true;
     
+    if (typeof window.Go !== 'function') {
+      console.error("Linker script (wasm_exec.js) not ready.");
+      return false;
+    }
+
     const go = new window.Go();
     try {
+      console.log("Ghost: Loading engine...");
       const result = await WebAssembly.instantiateStreaming(
         fetch("/whatsapp.wasm"),
         go.importObject
       );
       go.run(result.instance);
+      console.log("Ghost: Engine ready.");
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error("Wasm Loading Failed:", err);
-      return false;
+      // Fallback for browsers that don't support instantiateStreaming well or when MIME is wrong
+      try {
+        console.log("Ghost: Retrying with fallback...");
+        const response = await fetch("/whatsapp.wasm");
+        const buffer = await response.arrayBuffer();
+        const result = await WebAssembly.instantiate(buffer, go.importObject);
+        go.run(result.instance);
+        return true;
+      } catch (err2) {
+        console.error("Fallback Wasm Loading Failed:", err2);
+        return false;
+      }
     }
   };
 
