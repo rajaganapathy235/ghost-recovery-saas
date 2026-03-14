@@ -236,7 +236,7 @@ func main() {
 	js.Global().Set("logoutGhost", js.FuncOf(LogoutGhost))
 	js.Global().Set("saveGhostSession", js.FuncOf(SaveGhostSession))
 	js.Global().Set("loadGhostSession", js.FuncOf(LoadGhostSession))
-	fmt.Println("Ghost: Bridges registered.")
+	fmt.Println("Ghost: Engine V1.1 Bridges registered.")
 
 	log = waLog.Stdout("Main", "INFO", true)
 	
