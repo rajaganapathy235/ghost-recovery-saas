@@ -11,6 +11,8 @@ declare global {
   interface Window {
     Go: any;
     getWhatsAppPairingCode?: (phone: string) => Promise<string>;
+    loadGhostSession?: (session: string) => void;
+    saveGhostSession?: (session: string) => void;
   }
 }
 
