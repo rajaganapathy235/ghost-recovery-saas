@@ -2,13 +2,13 @@
 
 import React, { useState } from 'react';
 import { onboardBusiness } from '@/app/actions';
-import { Scissors, Bike, Dog, ChevronRight, Store, CheckCircle2 } from 'lucide-react';
+import { Scissors, Bike, Dog, ChevronRight, Store, CheckCircle2, Building2, MapPin } from 'lucide-react';
 
 const NICHES = [
-  { id: 'Salon', name: 'Salon & Spa', icon: Scissors, color: 'bg-rose-500/10 text-rose-500 border-rose-500/20' },
-  { id: 'Bike Service', name: 'Bike/Auto Service', icon: Bike, color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
-  { id: 'Pet Grooming', name: 'Pet Grooming', icon: Dog, color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
-  { id: 'Other', name: 'General Service', icon: Store, color: 'bg-zinc-500/10 text-zinc-500 border-zinc-500/20' },
+  { id: 'Salon', name: 'Salon & Spa', icon: Scissors, color: 'text-rose-500' },
+  { id: 'Bike Service', name: 'Bike/Auto Service', icon: Bike, color: 'text-blue-500' },
+  { id: 'Pet Grooming', name: 'Pet Grooming', icon: Dog, color: 'text-emerald-500' },
+  { id: 'Other', name: 'General Service', icon: Store, color: 'text-zinc-500' },
 ];
 
 export default function Onboarding({ onComplete }: { onComplete: (businessId: string) => void }) {
@@ -28,62 +28,82 @@ export default function Onboarding({ onComplete }: { onComplete: (businessId: st
   };
 
   return (
-    <div className="max-w-xl w-full mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="text-center space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Welcome to Recovery</h2>
-        <p className="text-muted-foreground">Let's set up your business in 30 seconds.</p>
+    <div className="w-full max-w-md mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <div className="text-center space-y-3">
+        <h2 className="text-4xl font-bold font-outfit text-white tracking-tight">Setup Business</h2>
+        <p className="text-muted-foreground text-sm">Configure your workspace in seconds</p>
       </div>
 
-      <div className="glass rounded-3xl border border-border p-8 space-y-8">
+      {/* Progress Bar */}
+      <div className="flex gap-2 px-1">
+        <div className={`h-1.5 rounded-full transition-all duration-500 ${step >= 1 ? 'flex-1 bg-primary shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'w-2 bg-white/10'}`} />
+        <div className={`h-1.5 rounded-full transition-all duration-500 ${step >= 2 ? 'flex-1 bg-primary shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'w-2 bg-white/10'}`} />
+      </div>
+
+      <div className="glass p-8 rounded-[2.5rem] border border-white/10 relative overflow-hidden">
         {step === 1 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">What's your business name?</label>
-              <input 
-                type="text" 
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Modern Cuts"
-                className="w-full bg-secondary/30 border border-border rounded-xl px-4 py-4 text-xl focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-muted-foreground/30"
-              />
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
+            <div className="space-y-4 text-center">
+              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto border border-primary/20">
+                <Building2 className="w-8 h-8 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white">Identity</h3>
+                <p className="text-muted-foreground text-xs mt-1">What should we call your business?</p>
+              </div>
             </div>
-            <button 
-              disabled={!name}
-              onClick={() => setStep(2)}
-              className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              Continue <ChevronRight className="w-5 h-5" />
-            </button>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <input 
+                  type="text" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Business Name"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-lg focus:ring-2 focus:ring-primary/50 outline-none transition-all placeholder:text-white/20"
+                />
+              </div>
+              <button 
+                disabled={!name}
+                onClick={() => setStep(2)}
+                className="w-full primary-gradient text-black py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 hover:opacity-90 transition-all disabled:opacity-30 disabled:grayscale shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+              >
+                Next Step <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         )}
 
         {step === 2 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-            <div className="space-y-4">
-              <label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Select your niche</label>
-              <div className="grid grid-cols-2 gap-4">
-                {NICHES.map((n) => (
-                  <button
-                    key={n.id}
-                    onClick={() => setNiche(n.id)}
-                    className={`p-6 rounded-2xl border text-left space-y-4 transition-all ${
-                      niche === n.id 
-                        ? 'border-primary ring-1 ring-primary bg-primary/5' 
-                        : 'border-border bg-secondary/10 hover:bg-secondary/20'
-                    }`}
-                  >
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${n.color}`}>
-                      <n.icon className="w-5 h-5" />
-                    </div>
-                    <span className="block font-bold text-sm tracking-tight">{n.name}</span>
-                  </button>
-                ))}
-              </div>
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
+            <div className="space-y-2 text-center">
+              <h3 className="text-xl font-bold text-white">Choose Niche</h3>
+              <p className="text-muted-foreground text-xs mt-1">Pick a category to auto-seed services</p>
             </div>
-            <div className="flex gap-4">
+
+            <div className="grid grid-cols-2 gap-3">
+              {NICHES.map((n) => (
+                <button
+                  key={n.id}
+                  onClick={() => setNiche(n.id)}
+                  className={`p-5 rounded-[2rem] border text-center space-y-3 transition-all transform active:scale-95 ${
+                    niche === n.id 
+                      ? 'border-primary bg-primary/10 shadow-[0_0_15px_rgba(16,185,129,0.1)]' 
+                      : 'border-white/10 bg-white/5 hover:bg-white/10'
+                  }`}
+                >
+                  <div className={`mx-auto w-10 h-10 rounded-xl flex items-center justify-center bg-white/5`}>
+                    <n.icon className={`w-5 h-5 ${n.color}`} />
+                  </div>
+                  <span className="block font-bold text-xs tracking-tight text-white">{n.name}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-3 pt-2">
               <button 
                 onClick={() => setStep(1)}
-                className="flex-1 py-4 border border-border rounded-xl font-bold hover:bg-secondary/50 transition-colors"
+                className="flex-1 py-4 glass border border-white/10 rounded-2xl font-bold text-sm hover:bg-white/5 transition-all"
                 disabled={loading}
               >
                 Back
@@ -91,18 +111,17 @@ export default function Onboarding({ onComplete }: { onComplete: (businessId: st
               <button 
                 disabled={!niche || loading}
                 onClick={handleOnboard}
-                className="flex-[2] py-4 bg-primary text-primary-foreground rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="flex-[2] primary-gradient text-black py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all disabled:opacity-30 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
               >
-                {loading ? 'Setting up...' : 'Finalize Setup'} <CheckCircle2 className="w-5 h-5" />
+                {loading ? 'Processing...' : 'Complete'} <CheckCircle2 className="w-5 h-5" />
               </button>
             </div>
           </div>
         )}
       </div>
 
-      <div className="flex justify-center gap-2">
-        <div className={`w-2 h-2 rounded-full transition-all ${step === 1 ? 'w-8 bg-primary' : 'bg-muted'}`} />
-        <div className={`w-2 h-2 rounded-full transition-all ${step === 2 ? 'w-8 bg-primary' : 'bg-muted'}`} />
+      <div className="text-center">
+        <p className="text-[10px] text-muted-foreground/30 uppercase tracking-[0.3em]">Phase 1 Deployment</p>
       </div>
     </div>
   );

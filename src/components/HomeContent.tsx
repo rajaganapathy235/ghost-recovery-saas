@@ -4,118 +4,168 @@ import React, { useState } from 'react';
 import PairingUI from "@/components/PairingUI";
 import Onboarding from "@/components/onboarding/Onboarding";
 import Link from "next/link";
-import { LayoutDashboard, Zap, LogOut } from "lucide-react";
+import { 
+  LayoutDashboard, 
+  Zap, 
+  LogOut, 
+  Users, 
+  MessageSquare, 
+  TrendingUp, 
+  PlusCircle, 
+  Home as HomeIcon, 
+  Settings,
+  ChevronRight,
+  UserPlus
+} from "lucide-react";
 
 export default function HomeContent() {
   const [businessId, setBusinessId] = useState<string | null>(null);
 
   if (!businessId) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 sm:p-24 animate-in fade-in duration-1000">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <Onboarding onComplete={(id) => setBusinessId(id)} />
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-background p-4 sm:p-24 animate-in fade-in duration-500">
-      <div className="w-full max-w-5xl flex flex-col items-center">
-        <div className="mb-12 text-center space-y-4">
-          <div className="inline-block px-3 py-1 rounded-full bg-secondary/80 border border-border text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-4">
-            Ghost Protocol Active
-          </div>
-          <h1 className="text-4xl sm:text-6xl font-bold tracking-tighter text-foreground mb-4">
-            Customer Recovery System
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            System ready for business ID: <span className="font-mono text-primary">{businessId}</span>
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full items-start">
-          <PairingUI />
-          
-          <div className="flex flex-col space-y-6">
-            <div className="p-8 glass rounded-3xl border border-border space-y-6">
-              <h2 className="text-2xl font-semibold tracking-tight">Quick Actions</h2>
-              <div className="grid grid-cols-1 gap-4">
-                <Link 
-                  href={`/quick-visit?businessId=${businessId}`}
-                  className="flex items-center justify-between p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                      <Zap className="w-5 h-5 text-emerald-500" />
-                    </div>
-                    <div>
-                      <div className="font-semibold">Quick Visit Entry</div>
-                      <div className="text-xs text-muted-foreground">High-speed visit recording</div>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
-                </Link>
-
-                <Link 
-                  href="/dashboard"
-                  className="flex items-center justify-between p-4 rounded-xl border border-border bg-secondary/30 hover:bg-secondary/50 transition-all group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <LayoutDashboard className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <div className="font-semibold">View Dashboard</div>
-                      <div className="text-xs text-muted-foreground">Track ROI and performance</div>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                </Link>
-              </div>
+    <main className="min-h-screen pb-24 pt-6 px-4">
+      <div className="max-w-md mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-2xl font-bold font-outfit text-white">Dashboard</h1>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+              <span className="text-[10px] uppercase tracking-widest text-primary font-bold">WhatsApp Ready</span>
             </div>
-
-            <button 
-              onClick={() => setBusinessId(null)}
-              className="flex items-center gap-2 text-xs text-muted-foreground hover:text-rose-500 transition-colors self-center p-2"
-            >
-              <LogOut className="w-3 h-3" /> Reset Business (Demo Mode)
-            </button>
+          </div>
+          <div className="w-10 h-10 rounded-full glass flex items-center justify-center border-white/10">
+            <Zap className="w-5 h-5 text-primary" />
           </div>
         </div>
 
-        <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-4xl opacity-50">
-          <div className="p-6 rounded-2xl border border-border bg-secondary/10">
-            <h3 className="font-semibold mb-2 text-foreground">Decentralized</h3>
-            <p className="text-sm text-muted-foreground">Sending happens in the browser via Go-Wasm bridge.</p>
+        {/* Hero Card */}
+        <div className="glass overflow-hidden rounded-[2rem] border-white/10 p-6 relative">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -mr-12 -mt-12" />
+          <div className="relative z-10 space-y-4">
+            <h2 className="text-xl font-bold text-white">Customer Recovery System</h2>
+            <p className="text-muted-foreground text-xs leading-relaxed max-w-[200px]">
+              Bringing back customers who forgot to return — automatically.
+            </p>
+            <Link 
+              href={`/quick-visit?businessId=${businessId}`}
+              className="flex items-center gap-2 bg-primary/20 text-primary border border-primary/20 px-4 py-2.5 rounded-xl text-sm font-bold w-fit hover:bg-primary/30 transition-all"
+            >
+              <Zap className="w-4 h-4" />
+              Mark a Visit
+            </Link>
           </div>
-          <div className="p-6 rounded-2xl border border-border bg-secondary/10">
-            <h3 className="font-semibold mb-2 text-foreground">Revenue-First</h3>
-            <p className="text-sm text-muted-foreground">ROI logic baked into every visit marked.</p>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="glass p-5 rounded-[2rem] border-white/5 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Total Customers</span>
+              <Users className="w-4 h-4 text-blue-400" />
+            </div>
+            <div className="text-3xl font-bold font-outfit text-white">124</div>
+            <p className="text-[10px] text-muted-foreground">In your database</p>
           </div>
-          <div className="p-6 rounded-2xl border border-border bg-secondary/10">
-            <h3 className="font-semibold mb-2 text-foreground">Minimalist</h3>
-            <p className="text-sm text-muted-foreground">Linear-tier UX for maximum speed and zero clutter.</p>
+          
+          <div className="glass p-5 rounded-[2rem] border-white/5 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Reminders</span>
+              <MessageSquare className="w-4 h-4 text-primary" />
+            </div>
+            <div className="text-3xl font-bold font-outfit text-white">12</div>
+            <p className="text-[10px] text-muted-foreground">Sent today</p>
           </div>
+
+          <div className="glass p-5 rounded-[2rem] border-white/5 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Recovered</span>
+              <TrendingUp className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="text-3xl font-bold font-outfit text-white">8</div>
+            <p className="text-[10px] text-emerald-400">↑ 12% vs last month</p>
+          </div>
+
+          <div className="glass p-5 rounded-[2rem] border-white/5 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Revenue</span>
+              <span className="text-xs font-bold text-primary">₹</span>
+            </div>
+            <div className="text-2xl font-bold font-outfit text-white tracking-tighter">₹8,450</div>
+            <p className="text-[10px] text-muted-foreground">From recovery</p>
+          </div>
+        </div>
+
+        {/* Quick Actions List */}
+        <div className="glass rounded-[2rem] border-white/10 p-2">
+          <Link 
+            href="/dashboard"
+            className="flex items-center justify-between p-4 rounded-2xl hover:bg-white/5 transition-all group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5">
+                <LayoutDashboard className="w-5 h-5 text-muted-foreground group-hover:text-white transition-colors" />
+              </div>
+              <span className="text-sm font-bold text-muted-foreground group-hover:text-white transition-colors">Advanced Dashboard</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </Link>
+          
+          <Link 
+            href="/whatsapp/linking"
+            className="flex items-center justify-between p-4 rounded-2xl hover:bg-white/5 transition-all group border-t border-white/5"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5">
+                <Zap className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+              </div>
+              <span className="text-sm font-bold text-muted-foreground group-hover:text-white transition-colors">Connect WhatsApp</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </Link>
+        </div>
+
+        {/* Demo info */}
+        <div className="pt-4 text-center">
+           <button 
+              onClick={() => setBusinessId(null)}
+              className="text-[10px] text-muted-foreground/30 hover:text-rose-500 transition-colors uppercase tracking-widest font-bold"
+            >
+              Reset Environment
+            </button>
         </div>
       </div>
-    </main>
-  );
-}
 
-function ChevronRight(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
+      {/* Floating Plus Button */}
+      <Link 
+        href={`/quick-visit?businessId=${businessId}`}
+        className="fixed bottom-28 right-6 w-14 h-14 primary-gradient rounded-full flex items-center justify-center shadow-[0_8px_25px_rgba(16,185,129,0.4)] transition-transform active:scale-90 z-40"
+      >
+        <UserPlus className="w-6 h-6 text-black" />
+      </Link>
+
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md glass rounded-[2.5rem] border-white/10 p-2 z-50 flex items-center justify-around">
+        <Link href="/" className="p-4 rounded-full bg-primary/10 text-primary">
+          <HomeIcon className="w-6 h-6" />
+        </Link>
+        <Link href="/dashboard" className="p-4 rounded-full text-muted-foreground hover:text-white transition-all">
+          <Users className="w-6 h-6" />
+        </Link>
+        <Link href="/dashboard" className="p-4 rounded-full text-muted-foreground hover:text-white transition-all">
+          <TrendingUp className="w-6 h-6" />
+        </Link>
+        <Link href="/dashboard" className="p-4 rounded-full text-muted-foreground hover:text-white transition-all">
+          <Settings className="w-6 h-6" />
+        </Link>
+      </nav>
+    </main>
   );
 }
