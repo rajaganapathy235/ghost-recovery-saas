@@ -168,30 +168,31 @@ func GetPairingCode(this js.Value, args []js.Value) interface{} {
 				}
 			}
 
-			fmt.Println("Ghost: Waiting for socket stabilization (Safety)...")
-			maxWait := 30 // 3 seconds max
+			fmt.Println("Ghost: Waiting for socket stabilization (Ultra-Safety V1.2)...")
+			maxWait := 50 // 5 seconds max
 			for i := 0; i < maxWait; i++ {
 				if client.IsConnected() {
-					time.Sleep(2000 * time.Millisecond) // Safety wait for protocol finish
+					time.Sleep(3000 * time.Millisecond) // Ultra safety for protocol shake
 					break
 				}
 				time.Sleep(100 * time.Millisecond)
 			}
 
-			fmt.Printf("Ghost: Requesting code for %s (with backoff retries)...\n", phoneNumber)
+			fmt.Printf("Ghost: Requesting code for %s (V1.2 Backoff)...\n", phoneNumber)
             
             var code string
             var err error
-            backoffs := []int{2, 5, 12} // Increasing wait times in seconds
+            backoffs := []int{3, 7, 15}
             
             for attempt := 0; attempt < 3; attempt++ {
-                code, err = client.PairPhone(context.Background(), phoneNumber, true, whatsmeow.PairClientChrome, "Ghost Recovery")
+                // Use a standard OS name as WhatsApp is picky
+                code, err = client.PairPhone(context.Background(), phoneNumber, true, whatsmeow.PairClientChrome, "Chrome (Windows)")
                 if err == nil {
                     break
                 }
                 
                 waitSec := backoffs[attempt]
-                fmt.Printf("Ghost: Pairing attempt %d failed: %v. Backoff wait: %ds...\n", attempt+1, err, waitSec)
+                fmt.Printf("Ghost: Attempt %d failed (%v). Waiting %ds for cooldown...\n", attempt+1, err, waitSec)
                 time.Sleep(time.Duration(waitSec) * time.Second)
             }
 
@@ -240,7 +241,7 @@ func main() {
 	js.Global().Set("logoutGhost", js.FuncOf(LogoutGhost))
 	js.Global().Set("saveGhostSession", js.FuncOf(SaveGhostSession))
 	js.Global().Set("loadGhostSession", js.FuncOf(LoadGhostSession))
-	fmt.Println("Ghost: Engine V1.1 Bridges registered.")
+	fmt.Println("Ghost: Engine V1.2 Bridges registered.")
 
 	log = waLog.Stdout("Main", "INFO", true)
 	
