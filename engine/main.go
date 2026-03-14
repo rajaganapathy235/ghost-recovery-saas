@@ -227,6 +227,14 @@ func registerEventHandler(cli *whatsmeow.Client) {
 	})
 }
 
+func ForceReconnect(this js.Value, args []js.Value) interface{} {
+    if client != nil {
+        fmt.Println("Ghost: Explicit reconnect triggered via JS bridge.")
+        go client.Connect()
+    }
+    return nil
+}
+
 func main() {
 	defer func() {
 		if r := recover(); r != nil {
@@ -235,6 +243,7 @@ func main() {
 	}()
 
 	js.Global().Set("getWhatsAppPairingCode", js.FuncOf(GetPairingCode))
+	js.Global().Set("forceReconnectGhost", js.FuncOf(ForceReconnect))
 	js.Global().Set("checkGhostLogin", js.FuncOf(CheckLogin))
 	js.Global().Set("getLoggedInPhone", js.FuncOf(GetLoggedInPhone))
 	js.Global().Set("sendGhostMessage", js.FuncOf(SendMessage))

@@ -17,6 +17,7 @@ declare global {
     getLoggedInPhone?: () => string;
     sendGhostMessage?: (target: string, text: string) => Promise<string>;
     logoutGhost?: () => string | null;
+    forceReconnectGhost?: () => void;
   }
 }
 
@@ -54,6 +55,8 @@ function WhatsAppLinkingContent() {
       const handleVisibility = () => {
           if (document.visibilityState === 'visible') {
               console.log("Ghost: App returned to foreground. Forcing engine check...");
+              window.forceReconnectGhost?.(); // Wake up socket immediately
+              
               if (window.checkGhostLogin?.()) {
                   setStep(3);
               }
@@ -62,6 +65,32 @@ function WhatsAppLinkingContent() {
       document.addEventListener('visibilitychange', handleVisibility);
       return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
+
+  // Screen Wake Lock API
+  useEffect(() => {
+    let wakeLock: any = null;
+    const requestWakeLock = async () => {
+      if ('wakeLock' in navigator && step === 2) {
+        try {
+          wakeLock = await (navigator as any).wakeLock.request('screen');
+          console.log("Ghost: Screen Wake Lock active.");
+        } catch (err: any) {
+          console.warn(`Ghost: Wake Lock failed: ${err.message}`);
+        }
+      }
+    };
+    
+    requestWakeLock();
+    
+    return () => {
+      if (wakeLock) {
+        wakeLock.release().then(() => {
+          wakeLock = null;
+          console.log("Ghost: Screen Wake Lock released.");
+        });
+      }
+    };
+  }, [step]);
   
   // Testing States
   const [testPhone, setTestPhone] = useState('');
