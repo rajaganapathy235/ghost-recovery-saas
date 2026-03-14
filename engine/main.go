@@ -8,6 +8,7 @@ import (
 
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/store/sqlstore"
+	"go.mau.fi/whatsmeow/types/events"
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
 	waLog "go.mau.fi/whatsmeow/util/log"
@@ -78,6 +79,21 @@ func GetPairingCode(this js.Value, args []js.Value) interface{} {
 	return promiseClass.New(handler)
 }
 
+func registerEventHandler(cli *whatsmeow.Client) {
+	cli.AddEventHandler(func(evt interface{}) {
+		switch v := evt.(type) {
+		case *events.PairSuccess:
+			fmt.Printf("Ghost SUCCESS: Successfully paired with %s (Business: %s)\n", v.ID, v.BusinessName)
+		case *events.PairError:
+			fmt.Printf("Ghost ERR: Pairing failed: %v\n", v.Error)
+		case *events.Connected:
+			fmt.Println("Ghost: Connected to WhatsApp socket.")
+		case *events.LoggedOut:
+			fmt.Println("Ghost: Logged out from WhatsApp.")
+		}
+	})
+}
+
 func main() {
 	// 1. IMMEDIATE REGISTRATION
 	js.Global().Set("getWhatsAppPairingCode", js.FuncOf(GetPairingCode))
@@ -101,6 +117,7 @@ func main() {
 			deviceStore.BusinessName = "Ghost SaaS"
             
 			client = whatsmeow.NewClient(deviceStore, log)
+			registerEventHandler(client) // Start listening for pairing success
 			fmt.Println("Ghost: Engine connecting...")
 			err = client.Connect()
 			if err != nil {
