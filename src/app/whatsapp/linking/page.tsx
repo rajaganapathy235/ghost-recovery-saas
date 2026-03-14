@@ -10,7 +10,7 @@ import { linkWhatsApp } from '@/app/actions';
 declare global {
   interface Window {
     Go: any;
-    getWhatsAppPairingCode: (phone: string) => Promise<string>;
+    getWhatsAppPairingCode?: (phone: string) => Promise<string>;
   }
 }
 
@@ -25,7 +25,7 @@ export default function WhatsAppLinking() {
   const [wasmLoaded, setWasmLoaded] = useState(false);
 
   const initWasm = async () => {
-    if (window.getWhatsAppPairingCode) return true;
+    if (typeof window.getWhatsAppPairingCode === 'function') return true;
     
     const go = new window.Go();
     try {
