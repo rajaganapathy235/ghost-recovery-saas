@@ -70,9 +70,24 @@ function WhatsAppLinkingContent() {
         
         const buffer = await response.arrayBuffer();
         const result = await WebAssembly.instantiate(buffer, go.importObject);
+        
+        // Start the engine
         go.run(result.instance);
+        
+        // IMPORTANT: Wait for the engine to register its functions
+        console.log("Ghost: Engine started, waiting for registration...");
+        let registrationRetries = 0;
+        while (typeof window.getWhatsAppPairingCode !== 'function' && registrationRetries < 50) {
+          await new Promise(r => setTimeout(r, 100));
+          registrationRetries++;
+        }
+
+        if (typeof window.getWhatsAppPairingCode !== 'function') {
+           throw new Error("Ghost Engine started but failed to register functions (timeout).");
+        }
+
         setLoadStatus('ready');
-        console.log("Ghost: Engine ready.");
+        console.log("Ghost: Engine fully ready with registration.");
       } catch (err: any) {
         console.error("Wasm Loading Failed:", err);
         setLoadStatus('error');
