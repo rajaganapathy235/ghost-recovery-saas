@@ -24,38 +24,49 @@ function WhatsAppLinkingContent() {
   const [loading, setLoading] = useState(false);
   const [wasmLoaded, setWasmLoaded] = useState(false);
 
-  const initWasm = async () => {
-    if (typeof window.getWhatsAppPairingCode === 'function') return true;
-    
+  useEffect(() => {
+    // Dynamically load wasm_exec.js to ensure it's available
     if (typeof window.Go !== 'function') {
-      console.error("Linker script (wasm_exec.js) not ready.");
+      const script = document.createElement('script');
+      script.src = '/wasm_exec.js';
+      script.async = true;
+      script.onload = () => console.log("Ghost: Linker script loaded.");
+      document.head.appendChild(script);
+    }
+  }, []);
+
+  const initWasm = async () => {
+    if (typeof window.getWhatsAppPairingCode === 'function') {
+       console.log("Ghost: Engine already active.");
+       return true;
+    }
+    
+    // Wait up to 3 seconds for window.Go to appear
+    let retries = 0;
+    while (typeof window.Go !== 'function' && retries < 30) {
+      await new Promise(r => setTimeout(r, 100));
+      retries++;
+    }
+
+    if (typeof window.Go !== 'function') {
+      console.error("Linker script (wasm_exec.js) timed out after 3s.");
       return false;
     }
 
     const go = new window.Go();
     try {
-      console.log("Ghost: Loading engine...");
-      const result = await WebAssembly.instantiateStreaming(
-        fetch("/whatsapp.wasm"),
-        go.importObject
-      );
+      console.log("Ghost: Loading engine binary...");
+      const response = await fetch("/whatsapp.wasm");
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
+      const buffer = await response.arrayBuffer();
+      const result = await WebAssembly.instantiate(buffer, go.importObject);
       go.run(result.instance);
       console.log("Ghost: Engine ready.");
       return true;
     } catch (err: any) {
       console.error("Wasm Loading Failed:", err);
-      // Fallback for browsers that don't support instantiateStreaming well or when MIME is wrong
-      try {
-        console.log("Ghost: Retrying with fallback...");
-        const response = await fetch("/whatsapp.wasm");
-        const buffer = await response.arrayBuffer();
-        const result = await WebAssembly.instantiate(buffer, go.importObject);
-        go.run(result.instance);
-        return true;
-      } catch (err2) {
-        console.error("Fallback Wasm Loading Failed:", err2);
-        return false;
-      }
+      return false;
     }
   };
 
@@ -202,11 +213,10 @@ function WhatsAppLinkingContent() {
         </div>
 
         {/* Footer info */}
-        <div className="text-center">
+      <div className="text-center">
           <p className="text-muted-foreground/30 text-[10px] uppercase tracking-[0.2em]">Secure PWA Bridge v2.0</p>
         </div>
       </div>
-      <Script src="/wasm_exec.js" strategy="beforeInteractive" />
     </div>
   );
 }
