@@ -158,13 +158,14 @@ function WhatsAppLinkingContent() {
        const worker = async () => {
           try {
              const res = await processDueReminders(businessId);
-             if (res.success && res.reminders.length > 0) {
+             if (res.success && res.reminders && res.reminders.length > 0) {
                 console.log(`Ghost: Found ${res.reminders.length} due reminders. Dispatching...`);
                 for (const rem of res.reminders) {
                    try {
-                      const cleanPhone = rem.customer.phone.replace(/\D/g, '');
+                      const r = rem as any;
+                      const cleanPhone = r.customer.phone.replace(/\D/g, '');
                       await window.sendGhostMessage?.(cleanPhone, "This is your Ghost recovery message! (Test Mode)");
-                      await markReminderSent(rem.id);
+                      await markReminderSent(r.id);
                       console.log(`Ghost: Success sending to ${cleanPhone}`);
                    } catch (sendErr) {
                       console.error(`Ghost: Send fail for log ${rem.id}:`, sendErr);
