@@ -38,6 +38,21 @@ function WhatsAppLinkingContent() {
   const [testLoading, setTestLoading] = useState(false);
   const [schedLoading, setSchedLoading] = useState(false);
 
+  // 1. Session Persistence Loop
+  useEffect(() => {
+    if (loadStatus === 'ready') {
+       const persistenceInterval = setInterval(() => {
+          if (window.checkGhostLogin?.()) {
+             const session = window.saveGhostSession?.();
+             if (session) {
+                localStorage.setItem(`ghost_session_${businessId}`, session);
+             }
+          }
+       }, 5000);
+       return () => clearInterval(persistenceInterval);
+    }
+  }, [loadStatus, businessId]);
+
   useEffect(() => {
     // Session Auto-Detection
     if (loadStatus === 'ready' && step === 1) {
@@ -138,6 +153,13 @@ function WhatsAppLinkingContent() {
         if (typeof window.getWhatsAppPairingCode !== 'function') {
            // Debug: Check if there was any console output trapped in the linker
            throw new Error("Ghost Engine registration timed out after 15s. This usually happens on slow devices or low memory.");
+        }
+
+        // 4. Try Session Restoration
+        const savedSession = localStorage.getItem(`ghost_session_${businessId}`);
+        if (savedSession && window.loadGhostSession) {
+           console.log("Ghost: Attempting to restore session from localStorage...");
+           window.loadGhostSession(savedSession);
         }
 
         setLoadStatus('ready');
@@ -250,6 +272,7 @@ function WhatsAppLinkingContent() {
   const handleLogout = async () => {
      if (confirm("Disconnect this device? You will need to link again.")) {
         window.logoutGhost?.();
+        localStorage.removeItem(`ghost_session_${businessId}`);
         setStep(1);
         setPhone('');
         setCode('');

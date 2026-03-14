@@ -15,6 +15,8 @@ import (
 	_ "github.com/ncruces/go-sqlite3/embed"
 	"google.golang.org/protobuf/proto"
 	waLog "go.mau.fi/whatsmeow/util/log"
+    "encoding/json"
+    "encoding/base64"
 )
 
 var client *whatsmeow.Client
@@ -37,7 +39,6 @@ func GetLoggedInPhone(this js.Value, args []js.Value) interface{} {
 
 func LogoutGhost(this js.Value, args []js.Value) interface{} {
     if client != nil {
-        // FIX: Added context.Background()
         err := client.Logout(context.Background())
         if err != nil {
             return err.Error()
@@ -45,6 +46,57 @@ func LogoutGhost(this js.Value, args []js.Value) interface{} {
         return nil
     }
     return "Not connected"
+}
+
+type GhostSessionData struct {
+	JID           string `json:"jid"`
+	NoiseKey      string `json:"noise_key"`
+	IdentityKey   string `json:"identity_key"`
+	AdvSecretKey  string `json:"adv_secret_key"`
+}
+
+func SaveGhostSession(this js.Value, args []js.Value) interface{} {
+	if client == nil || client.Store == nil || client.Store.ID == nil {
+		return nil
+	}
+	data := GhostSessionData{
+		JID:          client.Store.ID.String(),
+		NoiseKey:     base64.StdEncoding.EncodeToString(client.Store.NoiseKey.Priv[:]),
+		IdentityKey:  base64.StdEncoding.EncodeToString(client.Store.IdentityKey.Priv[:]),
+		AdvSecretKey: base64.StdEncoding.EncodeToString(client.Store.AdvSecretKey),
+	}
+	bytes, _ := json.Marshal(data)
+	return string(bytes)
+}
+
+func LoadGhostSession(this js.Value, args []js.Value) interface{} {
+	if len(args) < 1 {
+		return "Error: Session data required"
+	}
+	var data GhostSessionData
+	err := json.Unmarshal([]byte(args[0].String()), &data)
+	if err != nil {
+		return fmt.Sprintf("Error parsing session: %v", err)
+	}
+
+	jid, err := types.ParseJID(data.JID)
+	if err != nil {
+		return fmt.Sprintf("Error parsing JID: %v", err)
+	}
+
+	noiseKey, _ := base64.StdEncoding.DecodeString(data.NoiseKey)
+	identityKey, _ := base64.StdEncoding.DecodeString(data.IdentityKey)
+	advSecretKey, _ := base64.StdEncoding.DecodeString(data.AdvSecretKey)
+
+	if client != nil {
+		client.Store.ID = &jid
+		copy(client.Store.NoiseKey.Priv[:], noiseKey)
+		copy(client.Store.IdentityKey.Priv[:], identityKey)
+		client.Store.AdvSecretKey = advSecretKey
+		fmt.Println("Ghost: Session restored from localStorage.")
+		return nil
+	}
+	return "Error: Engine not ready"
 }
 
 func SendMessage(this js.Value, sendMessageArgs []js.Value) interface{} {
@@ -163,6 +215,8 @@ func main() {
 	js.Global().Set("getLoggedInPhone", js.FuncOf(GetLoggedInPhone))
 	js.Global().Set("sendGhostMessage", js.FuncOf(SendMessage))
 	js.Global().Set("logoutGhost", js.FuncOf(LogoutGhost))
+	js.Global().Set("saveGhostSession", js.FuncOf(SaveGhostSession))
+	js.Global().Set("loadGhostSession", js.FuncOf(LoadGhostSession))
 	fmt.Println("Ghost: Bridges registered.")
 
 	log = waLog.Stdout("Main", "INFO", true)
