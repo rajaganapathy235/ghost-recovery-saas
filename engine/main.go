@@ -6,8 +6,7 @@ import (
 	"syscall/js"
 
 	"go.mau.fi/whatsmeow"
-	"go.mau.fi/whatsmeow/store/sqlstore"
-	_ "modernc.org/sqlite" 
+	"go.mau.fi/whatsmeow/store"
 	waLog "go.mau.fi/whatsmeow/util/log"
 )
 
@@ -72,24 +71,18 @@ func main() {
 	log = waLog.Stdout("Main", "INFO", true)
 	
 	// 2. BACKGROUND INITIALIZATION
-	fmt.Println("Ghost: Initializing internal store (pure Go)...")
-	container, err := sqlstore.New(context.Background(), "sqlite", "file:session.db?mode=memory&cache=shared", log)
+	fmt.Println("Ghost: Initializing in-memory store (Wasm compatible)...")
+	
+	// Create a minimal in-memory device store
+	deviceStore := store.NewDevice()
+	
+	client = whatsmeow.NewClient(deviceStore, log)
+	fmt.Println("Ghost: Engine connecting...")
+	err := client.Connect()
 	if err != nil {
-		fmt.Printf("Ghost ERR: Failed to create store: %v\n", err)
+		fmt.Printf("Ghost ERR: Failed to start connection: %v\n", err)
 	} else {
-		deviceStore, err := container.GetFirstDevice(context.Background())
-		if err != nil {
-			fmt.Printf("Ghost ERR: Failed to get device store: %v\n", err)
-		} else {
-			client = whatsmeow.NewClient(deviceStore, log)
-			fmt.Println("Ghost: Engine connecting...")
-			err = client.Connect()
-			if err != nil {
-				fmt.Printf("Ghost ERR: Failed to start connection: %v\n", err)
-			} else {
-				fmt.Println("Ghost: Engine connection routine started.")
-			}
-		}
+		fmt.Println("Ghost: Engine connection routine started.")
 	}
 
 	// Keep the Go program alive
