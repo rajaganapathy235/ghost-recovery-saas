@@ -17,7 +17,14 @@ import (
 var client *whatsmeow.Client
 var log waLog.Logger
 
-// GetPairingCode is the function called from JS
+func CheckLogin(this js.Value, args []js.Value) interface{} {
+    if client == nil || client.Store == nil || client.Store.ID == nil {
+        return false
+    }
+    return client.IsConnected() && client.IsLoggedIn()
+}
+
+// GetPairingCode remains same
 func GetPairingCode(this js.Value, args []js.Value) interface{} {
 	if len(args) < 1 {
 		return js.Global().Get("Promise").Call("reject", "Error: Phone number required")
@@ -97,7 +104,8 @@ func registerEventHandler(cli *whatsmeow.Client) {
 func main() {
 	// 1. IMMEDIATE REGISTRATION
 	js.Global().Set("getWhatsAppPairingCode", js.FuncOf(GetPairingCode))
-	fmt.Println("Ghost: Function 'getWhatsAppPairingCode' registered.")
+	js.Global().Set("checkGhostLogin", js.FuncOf(CheckLogin))
+	fmt.Println("Ghost: Bridges registered.")
 
 	log = waLog.Stdout("Main", "INFO", true)
 	

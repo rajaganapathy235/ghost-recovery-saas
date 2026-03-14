@@ -13,6 +13,7 @@ declare global {
     getWhatsAppPairingCode?: (phone: string) => Promise<string>;
     loadGhostSession?: (session: string) => void;
     saveGhostSession?: (session: string) => void;
+    checkGhostLogin?: () => boolean;
   }
 }
 
@@ -126,6 +127,20 @@ function WhatsAppLinkingContent() {
 
     startLoading();
   }, []);
+
+  // Auto-detect login success in Step 2
+  useEffect(() => {
+    if (step === 2) {
+      const interval = setInterval(() => {
+        if (window.checkGhostLogin?.()) {
+          console.log("Ghost: Pairing success detected via polling!");
+          setStep(3); // Add a 3rd step for success or just link back
+          clearInterval(interval);
+        }
+      }, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [step]);
 
   const generateCode = async () => {
     if (loadStatus !== 'ready') {
