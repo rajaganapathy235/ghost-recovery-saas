@@ -48,9 +48,10 @@ model Customer {
 model RecoveryLog {
   id             String   @id @default(cuid())
   sentAt         DateTime @default(now())
+  scheduledAt    DateTime?
   recoveredAt    DateTime?
   revenueAmount  Float?
-  status         String   @default("SENT") // SENT, RECOVERED, EXPIRED
+  status         String   @default("SENT") // SENT, RECOVERED, EXPIRED, SCHEDULED
   customerId     String
   customer       Customer @relation(fields: [customerId], references: [id])
   businessId     String

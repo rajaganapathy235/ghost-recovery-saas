@@ -5,7 +5,7 @@ import { LucideShield, LucideArrowLeft, LucideSmartphone, LucideCheckCircle2, Lu
 import Link from 'next/link';
 import Script from 'next/script';
 import { useSearchParams } from 'next/navigation';
-import { linkWhatsApp } from '@/app/actions';
+import { linkWhatsApp, scheduleTestReminder, processDueReminders, markReminderSent } from '@/app/actions';
 
 declare global {
   interface Window {
@@ -14,7 +14,9 @@ declare global {
     loadGhostSession?: (session: string) => void;
     saveGhostSession?: (session: string) => void;
     checkGhostLogin?: () => boolean;
+    getLoggedInPhone?: () => string;
     sendGhostMessage?: (target: string, text: string) => Promise<string>;
+    logoutGhost?: () => string | null;
   }
 }
 
@@ -29,6 +31,27 @@ function WhatsAppLinkingContent() {
   const [loadStatus, setLoadStatus] = useState<'idle' | 'loading_linker' | 'loading_engine' | 'ready' | 'error'>('idle');
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
+  
+  // Testing States
+  const [testPhone, setTestPhone] = useState('');
+  const [testMsg, setTestMsg] = useState('iam live');
+  const [testLoading, setTestLoading] = useState(false);
+  const [schedLoading, setSchedLoading] = useState(false);
+
+  useEffect(() => {
+    // Session Auto-Detection
+    if (loadStatus === 'ready' && step === 1) {
+       const check = () => {
+         if (window.checkGhostLogin?.()) {
+            console.log("Ghost: Active session detected. Skipping to dashboard.");
+            setStep(4);
+         }
+       };
+       check();
+       const interval = setInterval(check, 3000);
+       return () => clearInterval(interval);
+    }
+  }, [loadStatus, step]);
 
   useEffect(() => {
     // Hijack console for debugging
@@ -129,6 +152,35 @@ function WhatsAppLinkingContent() {
     startLoading();
   }, []);
 
+  // Ghost Automation Loop (Worker)
+  useEffect(() => {
+    if (loadStatus === 'ready' && step === 4) {
+       const worker = async () => {
+          try {
+             const res = await processDueReminders(businessId);
+             if (res.success && res.reminders.length > 0) {
+                console.log(`Ghost: Found ${res.reminders.length} due reminders. Dispatching...`);
+                for (const rem of res.reminders) {
+                   try {
+                      const cleanPhone = rem.customer.phone.replace(/\D/g, '');
+                      await window.sendGhostMessage?.(cleanPhone, "This is your Ghost recovery message! (Test Mode)");
+                      await markReminderSent(rem.id);
+                      console.log(`Ghost: Success sending to ${cleanPhone}`);
+                   } catch (sendErr) {
+                      console.error(`Ghost: Send fail for log ${rem.id}:`, sendErr);
+                   }
+                }
+             }
+          } catch (err) {
+             console.error("Ghost: Automation loop error:", err);
+          }
+       };
+
+       const interval = setInterval(worker, 15000); // Check every 15s
+       return () => clearInterval(interval);
+    }
+  }, [loadStatus, step, businessId]);
+
   // Auto-detect login success in Step 2
   useEffect(() => {
     if (step === 2) {
@@ -191,6 +243,47 @@ function WhatsAppLinkingContent() {
       setErrorDetails(`Pairing Failed: ${msg}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+     if (confirm("Disconnect this device? You will need to link again.")) {
+        window.logoutGhost?.();
+        setStep(1);
+        setPhone('');
+        setCode('');
+     }
+  };
+
+  const handleScheduleTest = async () => {
+    const loggedInPhone = window.getLoggedInPhone?.();
+    if (!loggedInPhone) return alert("Please link WhatsApp first");
+    
+    setSchedLoading(true);
+    try {
+       const res = await scheduleTestReminder(businessId, loggedInPhone);
+       if (res.success) {
+          alert(`Success! Reminder scheduled for ${new Date(res.scheduledAt!).toLocaleTimeString()}. Keep this page open if testing via Wasm Engine.`);
+       } else {
+          alert(res.error);
+       }
+    } catch (err: any) {
+       alert("Error scheduling test: " + err);
+    } finally {
+       setSchedLoading(false);
+    }
+  };
+
+  const runCustomTest = async () => {
+    if (!testPhone) return alert("Enter a test number");
+    setTestLoading(true);
+    try {
+       await window.sendGhostMessage?.(testPhone.replace(/\D/g, ''), testMsg);
+       alert("Test message sent successfully!");
+    } catch (err: any) {
+       alert("Failed to send: " + err);
+    } finally {
+       setTestLoading(false);
     }
   };
 
@@ -337,7 +430,7 @@ function WhatsAppLinkingContent() {
           )}
 
           {step === 3 && (
-            <div className="space-y-10 animate-in fade-in zoom-in-95 duration-700 text-center py-4">
+             <div className="space-y-10 animate-in fade-in zoom-in-95 duration-700 text-center py-4">
               <div className="space-y-4">
                 <div className="w-24 h-24 bg-primary/20 rounded-[2.5rem] flex items-center justify-center mx-auto border border-primary/30 relative">
                    <LucideCheckCircle2 className="w-12 h-12 text-primary" />
@@ -366,15 +459,102 @@ function WhatsAppLinkingContent() {
                    </div>
                 </div>
 
-                <Link 
-                  href="/"
+                <button 
+                  onClick={() => setStep(4)}
                   className="w-full primary-gradient text-black py-5 rounded-[1.5rem] font-bold text-lg flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-[0_0_30px_rgba(16,185,129,0.4)] mt-4"
                 >
-                  Return to Dashboard
-                </Link>
+                  Enter Dashboard
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-500">
+              {/* Connected Header */}
+              <div className="flex flex-col items-center text-center space-y-3">
+                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center border border-primary/20 shadow-[0_0_30px_rgba(16,185,129,0.1)] relative">
+                  <div className="absolute inset-0 bg-primary/5 rounded-full animate-pulse" />
+                  <LucideShield className="w-10 h-10 text-primary relative z-10" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Engine Active</h2>
+                  <div className="flex items-center justify-center gap-2 mt-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                    <p className="text-primary/70 font-mono text-sm">+{window.getLoggedInPhone?.() || "Connected"}</p>
+                  </div>
+                </div>
               </div>
 
-              <p className="text-[10px] text-muted-foreground tracking-widest uppercase font-bold opacity-30">Ghost Engine v2.5 Stable</p>
+              {/* Test Actions */}
+              <div className="space-y-4">
+                <div className="p-5 glass rounded-3xl border border-white/5 space-y-4">
+                  <div className="flex items-center justify-between px-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Manual Live Test</p>
+                    <div className="w-2 h-2 rounded-full bg-primary/40 shrink-0" />
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <input 
+                      type="tel"
+                      value={testPhone}
+                      onChange={(e) => setTestPhone(e.target.value)}
+                      placeholder="Receiver Number (e.g. 919876543210)"
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white outline-none focus:ring-1 focus:ring-primary/40 transition-all placeholder:text-white/20"
+                    />
+                    <textarea 
+                      value={testMsg}
+                      onChange={(e) => setTestMsg(e.target.value)}
+                      placeholder="Message content"
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white outline-none focus:ring-1 focus:ring-primary/40 transition-all placeholder:text-white/20 h-20 resize-none"
+                    />
+                    <button 
+                      onClick={runCustomTest}
+                      disabled={testLoading}
+                      className="w-full py-3 bg-white/10 hover:bg-white/15 text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {testLoading ? <LucideLoader2 className="w-3 h-3 animate-spin" /> : "Dispatch Test Message"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Scheduled Test Section */}
+                <div className="p-5 glass rounded-3xl border border-white/5 space-y-4 bg-primary/5">
+                   <div className="flex items-center justify-between px-1">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Automation Test</p>
+                      <LucideLoader2 className="w-3 h-3 text-primary animate-spin" />
+                   </div>
+                   <p className="text-[11px] text-muted-foreground leading-relaxed px-1">
+                      Schedule a test reminder for **5 minutes from now** to verify the Ghost automation engine.
+                   </p>
+                   <button 
+                      onClick={handleScheduleTest}
+                      disabled={schedLoading}
+                      className="w-full py-4 primary-gradient text-black rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+                   >
+                      {schedLoading ? <LucideLoader2 className="w-4 h-4 animate-spin" /> : "Schedule 5-Min Test"}
+                   </button>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <Link 
+                    href="/"
+                    className="w-full py-4 text-center text-xs text-muted-foreground hover:text-white transition-all font-medium border border-white/5 rounded-2xl"
+                  >
+                    Go back to Home
+                  </Link>
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full py-4 text-center text-xs text-rose-500 hover:text-rose-400 transition-all font-bold tracking-widest uppercase opacity-80"
+                  >
+                    Disconnect Device
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-center pt-2">
+                <p className="text-[8px] text-muted-foreground/30 uppercase tracking-[0.3em]">Hardware ID: {businessId.slice(0,8)}</p>
+              </div>
             </div>
           )}
         </div>

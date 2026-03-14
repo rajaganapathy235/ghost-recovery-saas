@@ -223,3 +223,81 @@ export async function linkWhatsApp(businessId: string, phone: string) {
     return { success: false, error: 'Failed to link WhatsApp' };
   }
 }
+
+export async function scheduleTestReminder(businessId: string, phone: string) {
+  try {
+    // 1. Ensure test customer exists
+    const customer = await prisma.customer.upsert({
+      where: {
+        phone_businessId: {
+          phone,
+          businessId
+        }
+      },
+      update: {},
+      create: {
+        phone,
+        businessId,
+        name: "Test Customer (Self)"
+      }
+    });
+
+    // 2. Schedule log for 5 mins from now
+    const scheduledTime = new Date(Date.now() + 5 * 60 * 1000);
+    
+    const log = await prisma.recoveryLog.create({
+      data: {
+        businessId,
+        customerId: customer.id,
+        status: 'SCHEDULED',
+        scheduledAt: scheduledTime,
+        sentAt: scheduledTime // For sorting purposes
+      }
+    });
+
+    return { success: true, scheduledAt: scheduledTime, logId: log.id };
+  } catch (error) {
+    console.error('Failed to schedule reminder:', error);
+    return { success: false, error: 'Scheduling failed' };
+  }
+}
+
+export async function processDueReminders(businessId: string) {
+  try {
+    const due = await prisma.recoveryLog.findMany({
+      where: {
+        businessId,
+        status: 'SCHEDULED',
+        scheduledAt: { lte: new Date() }
+      },
+      include: {
+        customer: true
+      }
+    });
+
+    // Mark as SENDING so no other poll picks them up
+    if (due.length > 0) {
+      await prisma.recoveryLog.updateMany({
+        where: { id: { in: due.map(d => d.id) } },
+        data: { status: 'SENDING' }
+      });
+    }
+
+    return { success: true, reminders: due };
+  } catch (error) {
+    console.error('Failed to process reminders:', error);
+    return { success: false, error: 'Processing failed' };
+  }
+}
+
+export async function markReminderSent(logId: string) {
+   try {
+     await prisma.recoveryLog.update({
+       where: { id: logId },
+       data: { status: 'SENT', sentAt: new Date() }
+     });
+     return { success: true };
+   } catch (error) {
+     return { success: false };
+   }
+}

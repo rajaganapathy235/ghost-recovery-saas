@@ -19,6 +19,33 @@ import (
 
 var client *whatsmeow.Client
 var log waLog.Logger
+var container *sqlstore.Container
+
+func CheckLogin(this js.Value, args []js.Value) interface{} {
+    if client == nil || client.Store == nil || client.Store.ID == nil {
+        return false
+    }
+    return client.IsConnected() && client.IsLoggedIn()
+}
+
+func GetLoggedInPhone(this js.Value, args []js.Value) interface{} {
+    if client == nil || client.Store == nil || client.Store.ID == nil {
+        return ""
+    }
+    return client.Store.ID.User
+}
+
+func LogoutGhost(this js.Value, args []js.Value) interface{} {
+    if client != nil {
+        // FIX: Added context.Background()
+        err := client.Logout(context.Background())
+        if err != nil {
+            return err.Error()
+        }
+        return nil
+    }
+    return "Not connected"
+}
 
 func SendMessage(this js.Value, args []js.Value) interface{} {
 	handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -37,10 +64,6 @@ func SendMessage(this js.Value, args []js.Value) interface{} {
 				reject.Invoke("Error: Engine not connected")
 				return
 			}
-
-			// 1. Settle Delay: Allow history sync to start before hogging the pipe
-			fmt.Println("Ghost: Settle delay for test message (3s)...")
-			time.Sleep(3 * time.Second)
 
 			recipient, err := types.ParseJID(target + "@s.whatsapp.net")
 			if err != nil {
@@ -65,19 +88,10 @@ func SendMessage(this js.Value, args []js.Value) interface{} {
 	return js.Global().Get("Promise").New(handler)
 }
 
-func CheckLogin(this js.Value, args []js.Value) interface{} {
-    if client == nil || client.Store == nil || client.Store.ID == nil {
-        return false
-    }
-    return client.IsConnected() && client.IsLoggedIn()
-}
-
-// GetPairingCode remains same
 func GetPairingCode(this js.Value, args []js.Value) interface{} {
 	if len(args) < 1 {
 		return js.Global().Get("Promise").Call("reject", "Error: Phone number required")
 	}
-	// CAPTURE HERE: Outer scope
 	phoneNumber := args[0].String()
 
 	handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -90,7 +104,6 @@ func GetPairingCode(this js.Value, args []js.Value) interface{} {
 				return
 			}
 
-			// 1. Ensure we are physically connected
 			if !client.IsConnected() {
 				fmt.Println("Ghost: Engine not connected, attempting to reconnect...")
 				err := client.Connect()
@@ -100,23 +113,17 @@ func GetPairingCode(this js.Value, args []js.Value) interface{} {
 				}
 			}
 
-			// 2. WAIT for the socket to authenticate and be ready for queries
-			// The server needs a few seconds to stabilize the session
 			fmt.Println("Ghost: Waiting for socket stabilization...")
-			maxWait := 30 // 3 seconds
+			maxWait := 30
 			for i := 0; i < maxWait; i++ {
 				if client.IsConnected() {
-					// Add an extra buffer as recommended by whatsmeow for PairPhone
 					time.Sleep(2000 * time.Millisecond)
 					break
 				}
 				time.Sleep(100 * time.Millisecond)
 			}
 
-			// 3. Request the 8-digit code from WhatsApp
 			fmt.Printf("Ghost: Requesting code for %s...\n", phoneNumber)
-            
-            // CRITICAL FIX: The display name MUST be in "Browser (OS)" format or WhatsApp returns 400 Bad Request
 			code, err := client.PairPhone(context.Background(), phoneNumber, true, whatsmeow.PairClientChrome, "Chrome (Mac OS)")
 			if err != nil {
 				reject.Invoke(fmt.Sprintf("WhatsApp Error: %v", err))
@@ -129,22 +136,18 @@ func GetPairingCode(this js.Value, args []js.Value) interface{} {
 		return nil
 	})
 
-	// Return a Promise to JS
-	promiseClass := js.Global().Get("Promise")
-	return promiseClass.New(handler)
+	return js.Global().Get("Promise").New(handler)
 }
 
 func registerEventHandler(cli *whatsmeow.Client) {
 	cli.AddEventHandler(func(evt interface{}) {
 		switch v := evt.(type) {
 		case *events.PairSuccess:
-			fmt.Printf("Ghost SUCCESS: Successfully paired with %s (Business: %s)\n", v.ID, v.BusinessName)
-		case *events.PairError:
-			fmt.Printf("Ghost ERR: Pairing failed: %v\n", v.Error)
+			fmt.Printf("Ghost SUCCESS: Successfully paired with %s\n", v.ID)
 		case *events.Connected:
 			fmt.Println("Ghost: Connected to WhatsApp socket.")
 		case *events.HistorySync:
-			fmt.Println("Ghost: Initial History Sync in progress... (Syncing chats/messages)")
+			fmt.Println("Ghost: Initial History Sync in progress...")
 		case *events.LoggedOut:
 			fmt.Println("Ghost: Logged out from WhatsApp.")
 		}
@@ -152,18 +155,19 @@ func registerEventHandler(cli *whatsmeow.Client) {
 }
 
 func main() {
-	// 1. IMMEDIATE REGISTRATION
 	js.Global().Set("getWhatsAppPairingCode", js.FuncOf(GetPairingCode))
 	js.Global().Set("checkGhostLogin", js.FuncOf(CheckLogin))
+	js.Global().Set("getLoggedInPhone", js.FuncOf(GetLoggedInPhone))
 	js.Global().Set("sendGhostMessage", js.FuncOf(SendMessage))
+	js.Global().Set("logoutGhost", js.FuncOf(LogoutGhost))
 	fmt.Println("Ghost: Bridges registered.")
 
 	log = waLog.Stdout("Main", "INFO", true)
 	
-	// 2. BACKGROUND INITIALIZATION
-	fmt.Println("Ghost: Initializing internal store (Wasm SQLite)...")
-	// Use ncruces/go-sqlite3 which works in JS/Wasm
-	container, err := sqlstore.New(context.Background(), "sqlite3", "file:session.db?mode=memory&cache=shared", log)
+	fmt.Println("Ghost: Initializing internal store...")
+    
+	var err error
+	container, err = sqlstore.New(context.Background(), "sqlite3", "file:session.db?cache=shared", log)
 	if err != nil {
 		fmt.Printf("Ghost ERR: Failed to create store: %v\n", err)
 	} else {
@@ -171,23 +175,15 @@ func main() {
 		if err != nil {
 			fmt.Printf("Ghost ERR: Failed to get device store: %v\n", err)
 		} else {
-			// Set some default props to help with identity
 			deviceStore.Platform = "chrome"
 			deviceStore.BusinessName = "Ghost SaaS"
-            
 			client = whatsmeow.NewClient(deviceStore, log)
-			registerEventHandler(client) // Start listening for pairing success
+			registerEventHandler(client)
 			fmt.Println("Ghost: Engine connecting...")
-			err = client.Connect()
-			if err != nil {
-				fmt.Printf("Ghost ERR: Failed to start connection: %v\n", err)
-			} else {
-				fmt.Println("Ghost: Engine connection routine started.")
-			}
+			client.Connect()
 		}
 	}
 
-	// Keep the Go program alive
 	fmt.Println("Ghost Engine Alive (Looping)")
 	select {}
 }
