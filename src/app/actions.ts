@@ -200,7 +200,7 @@ export async function onboardBusiness(name: string, niche: string) {
     return { success: true, businessId: business.id };
   } catch (error: any) {
     console.error('Onboarding failed:', error);
-    return { success: false, error: 'Onboarding failed' };
+    return { success: false, error: error.message || 'Onboarding failed' };
   }
 }
 
