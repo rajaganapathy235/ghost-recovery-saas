@@ -243,7 +243,7 @@ function WhatsAppLinkingContent() {
           setStep(3); 
           clearInterval(interval);
         }
-      }, 2000);
+      }, 500);
       return () => clearInterval(interval);
     }
     

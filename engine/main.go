@@ -168,18 +168,18 @@ func GetPairingCode(this js.Value, args []js.Value) interface{} {
 				}
 			}
 
-			fmt.Println("Ghost: Waiting for socket stabilization (Extended)...")
-			maxWait := 60 // 6 seconds
+			fmt.Println("Ghost: Waiting for socket stabilization (Optimized)...")
+			maxWait := 20 // 2 seconds max
 			for i := 0; i < maxWait; i++ {
 				if client.IsConnected() {
-					time.Sleep(3000 * time.Millisecond) // Give more time for protocol shake
+					time.Sleep(800 * time.Millisecond) // Faster shake for modern networks
 					break
 				}
 				time.Sleep(100 * time.Millisecond)
 			}
 
 			fmt.Printf("Ghost: Requesting code for %s...\n", phoneNumber)
-			code, err := client.PairPhone(context.Background(), phoneNumber, true, whatsmeow.PairClientChrome, "Chrome (Mac OS)")
+			code, err := client.PairPhone(context.Background(), phoneNumber, true, whatsmeow.PairClientChrome, "Ghost Recovery")
 			if err != nil {
 				reject.Invoke(fmt.Sprintf("WhatsApp Error: %v", err))
 				return
@@ -202,7 +202,9 @@ func registerEventHandler(cli *whatsmeow.Client) {
 		case *events.Connected:
 			fmt.Println("Ghost: Connected to WhatsApp socket.")
 		case *events.HistorySync:
-			fmt.Println("Ghost: Initial History Sync in progress...")
+			fmt.Println("Ghost: History Sync detected. Skipping to save bandwidth...")
+            // We don't call anything here, just let it be. 
+            // Whatsmeow by default won't download full history unless we ask.
 		case *events.LoggedOut:
 			fmt.Println("Ghost: Logged out from WhatsApp.")
 		}
