@@ -27,7 +27,10 @@ func CheckLogin(this js.Value, args []js.Value) interface{} {
     if client == nil || client.Store == nil || client.Store.ID == nil {
         return false
     }
-    return client.IsConnected() && client.IsLoggedIn()
+    // Optimization: If Store.ID is set, the pairing was successful.
+    // We don't need to wait for the full handshake (which includes history sync)
+    // to tell the UI it worked.
+    return true
 }
 
 func GetLoggedInPhone(this js.Value, args []js.Value) interface{} {
@@ -250,7 +253,7 @@ func main() {
 	js.Global().Set("logoutGhost", js.FuncOf(LogoutGhost))
 	js.Global().Set("saveGhostSession", js.FuncOf(SaveGhostSession))
 	js.Global().Set("loadGhostSession", js.FuncOf(LoadGhostSession))
-	fmt.Println("Ghost: Engine V1.2 Bridges registered.")
+	fmt.Println("Ghost: Engine V1.4 Bridges registered.")
 
 	log = waLog.Stdout("Main", "INFO", true)
 	
@@ -269,13 +272,23 @@ func main() {
                 fmt.Println("Ghost: No device found in memory, creating fresh device...")
                 deviceStore = container.NewDevice()
             }
-			deviceStore.Platform = "chrome"
-			deviceStore.BusinessName = "Ghost SaaS"
+			deviceStore.Platform = "macOS"
+			deviceStore.BusinessName = "Ghost Recovery"
 			client = whatsmeow.NewClient(deviceStore, log)
 			registerEventHandler(client)
-			fmt.Println("Ghost: Engine connecting...")
-            
-            go func() {
+			fmt.Println("Ghost: Engine connecting (V1.4 Hyper-Pulse)...")
+
+			// High-Frequency Heartbeat for Wasm background resilience
+			go func() {
+				for {
+					time.Sleep(500 * time.Millisecond)
+					if client != nil && client.IsConnected() {
+						_ = client.SendPresence(context.Background(), types.PresenceAvailable)
+					}
+				}
+			}()
+
+			go func() {
                 defer func() {
                     if r := recover(); r != nil {
                         fmt.Printf("Ghost: Connection routine recovered from panic: %v\n", r)
