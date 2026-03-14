@@ -296,6 +296,46 @@ function WhatsAppLinkingContent() {
             </div>
           )}
 
+          {step === 2 && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="space-y-2 text-center">
+                <h2 className="text-2xl font-bold text-white">Your Link Code</h2>
+                <p className="text-muted-foreground text-sm">Enter this on your phone</p>
+              </div>
+
+              <div className="flex justify-center flex-wrap gap-2">
+                {code.split('').map((char, i) => (
+                  <div key={i} className="w-10 h-14 glass border border-primary/30 rounded-xl flex items-center justify-center text-2xl font-bold text-primary font-mono shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                    {char}
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center mt-0.5 shrink-0">
+                      <span className="text-[10px] font-bold text-primary">1</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Open WhatsApp on your phone</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center mt-0.5 shrink-0">
+                      <span className="text-[10px] font-bold text-primary">2</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Go to Settings &gt; Linked Devices</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center mt-0.5 shrink-0">
+                      <span className="text-[10px] font-bold text-primary">3</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Tap "Link with phone code" and enter the code above</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {step === 3 && (
             <div className="space-y-10 animate-in fade-in zoom-in-95 duration-700 text-center py-4">
               <div className="space-y-4">
