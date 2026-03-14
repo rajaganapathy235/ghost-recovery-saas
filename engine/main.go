@@ -7,7 +7,7 @@ import (
 
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/store/sqlstore"
-	_ "github.com/mattn/go-sqlite3" 
+	_ "modernc.org/sqlite" 
 	waLog "go.mau.fi/whatsmeow/util/log"
 )
 
@@ -72,8 +72,8 @@ func main() {
 	log = waLog.Stdout("Main", "INFO", true)
 	
 	// 2. BACKGROUND INITIALIZATION
-	fmt.Println("Ghost: Initializing internal store...")
-	container, err := sqlstore.New(context.Background(), "sqlite3", "file:session.db?mode=memory&cache=shared", log)
+	fmt.Println("Ghost: Initializing internal store (pure Go)...")
+	container, err := sqlstore.New(context.Background(), "sqlite", "file:session.db?mode=memory&cache=shared", log)
 	if err != nil {
 		fmt.Printf("Ghost ERR: Failed to create store: %v\n", err)
 	} else {
