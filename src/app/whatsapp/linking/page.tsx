@@ -193,14 +193,18 @@ function WhatsAppLinkingContent() {
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">Mobile Number</label>
+                  <div className="flex justify-between items-center ml-1">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Mobile Number</label>
+                    <span className="text-[10px] text-primary/50 font-bold">Country Code Required</span>
+                  </div>
                   <input 
                     type="tel" 
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+91 98765 43210"
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-lg text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all placeholder:text-white/10"
+                    placeholder="919597992677"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-lg text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all placeholder:text-white/20"
                   />
+                  <p className="text-[9px] text-muted-foreground ml-1">Format: <span className="text-white/40">91</span> + <span className="text-white/40">10 digits</span>. No '+' or '-' needed.</p>
                 </div>
                 <button 
                   disabled={!phone || loading || loadStatus !== 'ready'}
