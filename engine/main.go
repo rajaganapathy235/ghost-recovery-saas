@@ -167,7 +167,7 @@ func main() {
 	fmt.Println("Ghost: Initializing internal store...")
     
 	var err error
-	container, err = sqlstore.New(context.Background(), "sqlite3", "file:session.db?cache=shared", log)
+	container, err = sqlstore.New(context.Background(), "sqlite3", "file:session.db?mode=memory&cache=shared", log)
 	if err != nil {
 		fmt.Printf("Ghost ERR: Failed to create store: %v\n", err)
 	} else {
