@@ -17,15 +17,15 @@ var log waLog.Logger
 
 // GetPairingCode is the function called from JS
 func GetPairingCode(this js.Value, args []js.Value) interface{} {
+	if len(args) < 1 {
+		return js.Global().Get("Promise").Call("reject", "Error: Phone number required")
+	}
+	// CAPTURE HERE: Outer scope
+	phoneNumber := args[0].String()
+
 	handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		resolve := args[0]
 		reject := args[1]
-
-		if len(args) < 1 {
-			reject.Invoke("Error: Phone number required")
-			return nil
-		}
-		phoneNumber := args[0].String()
 
 		go func() {
 			if client == nil {
@@ -42,6 +42,7 @@ func GetPairingCode(this js.Value, args []js.Value) interface{} {
 				}
 			}
 
+			// USE CAPTURED PHONE
 			fmt.Printf("Ghost: Requesting code for %s...\n", phoneNumber)
 			code, err := client.PairPhone(context.Background(), phoneNumber, true, whatsmeow.PairClientChrome, "SaaS Reminder PWA")
 			if err != nil {
