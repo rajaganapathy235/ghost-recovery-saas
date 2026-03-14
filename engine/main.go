@@ -137,9 +137,22 @@ func SendMessage(this js.Value, sendMessageArgs []js.Value) interface{} {
 			}
 
 			// 1. Settle Delay: Allow history sync to start before hogging the pipe
-			fmt.Println("Ghost: Settle delay for test message (2s)...")
-			time.Sleep(2 * time.Second)
+			fmt.Println("Ghost: Waiting for socket to settle (5s)...")
+			
+            // Aggressive Connection Waiter
+            for i := 0; i < 10; i++ { // 5 seconds max
+                if client.IsConnected() {
+                    break
+                }
+                time.Sleep(500 * time.Millisecond)
+            }
 
+			if !client.IsConnected() {
+				reject.Invoke("Error: Engine remained disconnected after settlement delay")
+				return
+			}
+
+            // 2. Recipient Parsing
 			recipient, err := types.ParseJID(target + "@s.whatsapp.net")
 			if err != nil {
 				reject.Invoke(fmt.Sprintf("Invalid JID: %v", err))
@@ -150,13 +163,29 @@ func SendMessage(this js.Value, sendMessageArgs []js.Value) interface{} {
 				Conversation: proto.String(messageText),
 			}
 
-			resp, err := client.SendMessage(context.Background(), recipient, msg)
-			if err != nil {
-				reject.Invoke(fmt.Sprintf("Send Failed: %v", err))
-				return
-			}
-			fmt.Printf("Ghost: Message sent! ID: %s\n", resp.ID)
-			resolve.Invoke(resp.ID)
+            // 3. Protocol Retry Loop (Fixed usync/device list failures)
+            var lastErr error
+            for attempt := 1; attempt <= 3; attempt++ {
+                fmt.Printf("Ghost: Dispatch attempt %d...\n", attempt)
+			    resp, err := client.SendMessage(context.Background(), recipient, msg)
+			    if err == nil {
+			        fmt.Printf("Ghost: Message sent! ID: %s\n", resp.ID)
+			        resolve.Invoke(resp.ID)
+                    return
+			    }
+                lastErr = err
+                fmt.Printf("Ghost ERR: Dispatch attempt %d failed: %v\n", attempt, err)
+                time.Sleep(2 * time.Second)
+                
+                // If it failed due to disconnect, try to reconnect once inside the loop
+                if !client.IsConnected() {
+                     fmt.Println("Ghost: Sudden disconnect. Forcing reconnect...")
+                     _ = client.Connect()
+                     time.Sleep(2 * time.Second)
+                }
+            }
+            
+			reject.Invoke(fmt.Sprintf("Send Final Failure after 3 attempts: %v", lastErr))
 		}()
 		return nil
 	})
@@ -270,7 +299,7 @@ func main() {
 	js.Global().Set("logoutGhost", js.FuncOf(LogoutGhost))
 	js.Global().Set("saveGhostSession", js.FuncOf(SaveGhostSession))
 	js.Global().Set("loadGhostSession", js.FuncOf(LoadGhostSession))
-	fmt.Println("Ghost: Engine V1.5 Bridges registered.")
+	fmt.Println("Ghost: Engine V1.6 Bridges registered.")
 
 	log = waLog.Stdout("Main", "INFO", true)
 	
