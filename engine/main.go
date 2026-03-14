@@ -177,12 +177,12 @@ func SendMessage(this js.Value, sendMessageArgs []js.Value) interface{} {
                 fmt.Printf("Ghost ERR: Dispatch attempt %d failed: %v\n", attempt, err)
                 time.Sleep(2 * time.Second)
                 
-                // If it failed due to disconnect, try to reconnect once inside the loop
-                if !client.IsConnected() {
-                     fmt.Println("Ghost: Sudden disconnect. Forcing reconnect...")
-                     _ = client.Connect()
-                     time.Sleep(2 * time.Second)
-                }
+                // Protocol Cold-Start: If it failed, reset the physical socket to clear encryption state
+                fmt.Println("Ghost: Protocol failure/disconnect. Forcing Cold-Start reset...")
+                client.Disconnect() // Drop the pipe
+                time.Sleep(500 * time.Millisecond)
+                _ = client.Connect() // Force a fresh TLS/Handshake
+                time.Sleep(2500 * time.Millisecond) // Give it time to authenticated
             }
             
 			reject.Invoke(fmt.Sprintf("Send Final Failure after 3 attempts: %v", lastErr))
@@ -299,7 +299,7 @@ func main() {
 	js.Global().Set("logoutGhost", js.FuncOf(LogoutGhost))
 	js.Global().Set("saveGhostSession", js.FuncOf(SaveGhostSession))
 	js.Global().Set("loadGhostSession", js.FuncOf(LoadGhostSession))
-	fmt.Println("Ghost: Engine V1.6 Bridges registered.")
+	fmt.Println("Ghost: Engine V1.7 Bridges registered (Persistent Fighter).")
 
 	log = waLog.Stdout("Main", "INFO", true)
 	
@@ -322,15 +322,22 @@ func main() {
 			deviceStore.BusinessName = "Ghost Recovery"
 			client = whatsmeow.NewClient(deviceStore, log)
 			registerEventHandler(client)
-			fmt.Println("Ghost: Engine connecting (V1.4 Hyper-Pulse)...")
+			fmt.Println("Ghost: Engine V1.7 Core Active.")
 
-			// High-Frequency Heartbeat for Wasm background resilience
+			// Persistent "Fighter" Loop: Keeps the socket alive 24/7 if session exists
 			go func() {
 				for {
-					time.Sleep(500 * time.Millisecond)
-					if client != nil && client.IsConnected() {
-						_ = client.SendPresence(context.Background(), types.PresenceAvailable)
-					}
+					time.Sleep(5 * time.Second)
+                    if client != nil {
+                        // Priority 1: Keep presence alive if connected
+                        if client.IsConnected() {
+                            _ = client.SendPresence(context.Background(), types.PresenceAvailable)
+                        } else if client.Store != nil && client.Store.ID != nil {
+                            // Priority 2: Force reconnect if disconnected but session exists
+                            fmt.Println("Ghost: Fighter Loop - Socket dead. Forcing persistence...")
+                            _ = client.Connect()
+                        }
+                    }
 				}
 			}()
 
