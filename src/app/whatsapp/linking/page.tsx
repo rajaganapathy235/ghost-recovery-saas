@@ -22,64 +22,81 @@ function WhatsAppLinkingContent() {
   const [phone, setPhone] = useState('+91-9597992677');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const [wasmLoaded, setWasmLoaded] = useState(false);
+  const [loadStatus, setLoadStatus] = useState<'idle' | 'loading_linker' | 'loading_engine' | 'ready' | 'error'>('idle');
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
   useEffect(() => {
-    // Dynamically load wasm_exec.js to ensure it's available
-    if (typeof window.Go !== 'function') {
-      const script = document.createElement('script');
-      script.src = '/wasm_exec.js';
-      script.async = true;
-      script.onload = () => console.log("Ghost: Linker script loaded.");
-      document.head.appendChild(script);
-    }
+    // Proactively start initialization
+    const startLoading = async () => {
+      setLoadStatus('loading_linker');
+      
+      // 1. Load Linker Script if missing
+      if (typeof window.Go !== 'function') {
+        const script = document.createElement('script');
+        script.src = '/wasm_exec.js';
+        script.async = true;
+        document.head.appendChild(script);
+      }
+
+      // 2. Wait for Linker
+      let retries = 0;
+      while (typeof window.Go !== 'function' && retries < 100) { // 10s timeout
+        await new Promise(r => setTimeout(r, 100));
+        retries++;
+      }
+
+      if (typeof window.Go !== 'function') {
+        setLoadStatus('error');
+        setErrorDetails("Ghost Linker (wasm_exec.js) failed to execute. Check connection.");
+        return;
+      }
+
+      // 3. Load Engine Binary
+      if (typeof window.getWhatsAppPairingCode === 'function') {
+        setLoadStatus('ready');
+        return;
+      }
+
+      try {
+        setLoadStatus('loading_engine');
+        const go = new window.Go();
+        
+        if (!window.WebAssembly) {
+            throw new Error("Browser does not support WebAssembly.");
+        }
+
+        const response = await fetch("/whatsapp.wasm");
+        if (!response.ok) throw new Error(`Engine Download Failed: HTTP ${response.status}`);
+        
+        const buffer = await response.arrayBuffer();
+        const result = await WebAssembly.instantiate(buffer, go.importObject);
+        go.run(result.instance);
+        setLoadStatus('ready');
+        console.log("Ghost: Engine ready.");
+      } catch (err: any) {
+        console.error("Wasm Loading Failed:", err);
+        setLoadStatus('error');
+        setErrorDetails(err.message || "Failed to load Ghost Engine.");
+      }
+    };
+
+    startLoading();
   }, []);
 
-  const initWasm = async () => {
-    if (typeof window.getWhatsAppPairingCode === 'function') {
-       console.log("Ghost: Engine already active.");
-       return true;
-    }
-    
-    // Wait up to 3 seconds for window.Go to appear
-    let retries = 0;
-    while (typeof window.Go !== 'function' && retries < 30) {
-      await new Promise(r => setTimeout(r, 100));
-      retries++;
-    }
-
-    if (typeof window.Go !== 'function') {
-      console.error("Linker script (wasm_exec.js) timed out after 3s.");
-      return false;
-    }
-
-    const go = new window.Go();
-    try {
-      console.log("Ghost: Loading engine binary...");
-      const response = await fetch("/whatsapp.wasm");
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      
-      const buffer = await response.arrayBuffer();
-      const result = await WebAssembly.instantiate(buffer, go.importObject);
-      go.run(result.instance);
-      console.log("Ghost: Engine ready.");
-      return true;
-    } catch (err: any) {
-      console.error("Wasm Loading Failed:", err);
-      return false;
-    }
-  };
-
   const generateCode = async () => {
-    setLoading(true);
+    if (loadStatus !== 'ready') {
+        alert(errorDetails || "Engine still loading... please wait.");
+        return;
+    }
     
-    // 1. Ensure Wasm is loaded
-    const ready = await initWasm();
+    setLoading(true);
     const pairingFn = window.getWhatsAppPairingCode;
 
-    if (!ready || !pairingFn) {
+    if (!pairingFn) {
       setLoading(false);
-      alert("Failed to initialize Ghost Engine. Ensure you are on a compatible browser.");
+      setLoadStatus('error');
+      setErrorDetails("Ghost Engine lost registration. Refreshing...");
+      window.location.reload();
       return;
     }
 
@@ -94,7 +111,7 @@ function WhatsAppLinkingContent() {
       setStep(2);
     } catch (err) {
       console.error("Pairing Error:", err);
-      alert("Failed to get pairing code. Check network.");
+      alert("Verification Failed: Engine connection lost. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -140,7 +157,7 @@ function WhatsAppLinkingContent() {
                   />
                 </div>
                 <button 
-                  disabled={!phone || loading}
+                  disabled={!phone || loading || loadStatus !== 'ready'}
                   onClick={generateCode}
                   className="w-full primary-gradient text-black py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 hover:opacity-90 transition-all disabled:opacity-30 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
                 >
@@ -153,6 +170,27 @@ function WhatsAppLinkingContent() {
                     "Generate Code"
                   )}
                 </button>
+
+                {/* Status Indicator */}
+                <div className="flex flex-col items-center gap-2 pt-2">
+                   {loadStatus === 'loading_linker' && (
+                     <p className="text-[10px] text-muted-foreground animate-pulse">Initializing Secure Tunnel...</p>
+                   )}
+                   {loadStatus === 'loading_engine' && (
+                     <p className="text-[10px] text-primary animate-pulse font-bold">Downloading Ghost Engine (26MB)...</p>
+                   )}
+                   {loadStatus === 'error' && (
+                     <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[10px] font-bold text-center w-full">
+                       {errorDetails}
+                     </div>
+                   )}
+                   {loadStatus === 'ready' && !loading && (
+                     <div className="flex items-center gap-1.5">
+                       <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                       <p className="text-[10px] text-primary/50 uppercase tracking-widest font-bold">Engine Connected</p>
+                     </div>
+                   )}
+                </div>
               </div>
 
               <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
