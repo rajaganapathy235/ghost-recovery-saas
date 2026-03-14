@@ -46,28 +46,31 @@ func GetPairingCode(this js.Value, args []js.Value) interface{} {
 }
 
 func main() {
+	// 1. IMMEDIATE REGISTRATION
+	// We do this first so the UI knows the engine is alive, even if it's still connecting to "DB"
+	js.Global().Set("getWhatsAppPairingCode", js.FuncOf(GetPairingCode))
+	fmt.Println("Ghost: Function 'getWhatsAppPairingCode' registered.")
+
 	log = waLog.Stdout("Main", "INFO", true)
 	
-	// Initialize Client (Simplified for Wasm context)
-	// In production, we'll use a custom store that talks to browser IndexedDB
-	container, err := sqlstore.New(context.Background(), "sqlite3", "file:session.db?mode=memory", log)
+	// 2. BACKGROUND INITIALIZATION
+	// Using a memdb which is safe for experimental Wasm
+	fmt.Println("Ghost: Initializing internal store...")
+	container, err := sqlstore.New(context.Background(), "sqlite3", "file:session.db?mode=memory&cache=shared", log)
 	if err != nil {
-		fmt.Printf("Failed to create store: %v\n", err)
-		return
+		fmt.Printf("Ghost ERR: Failed to create store: %v\n", err)
+		// We don't exit, we let the user try again or see the log
+	} else {
+		deviceStore, err := container.GetFirstDevice(context.Background())
+		if err != nil {
+			fmt.Printf("Ghost ERR: Failed to get device store: %v\n", err)
+		} else {
+			client = whatsmeow.NewClient(deviceStore, log)
+			fmt.Println("Ghost: Engine core ready.")
+		}
 	}
-	deviceStore, err := container.GetFirstDevice(context.Background())
-	if err != nil {
-		fmt.Printf("Failed to get device store: %v\n", err)
-		return
-	}
-	
-	client = whatsmeow.NewClient(deviceStore, log)
-
-	// Export function to the Browser's Global Window
-	js.Global().Set("getWhatsAppPairingCode", js.FuncOf(GetPairingCode))
-
-	fmt.Println("Ghost WhatsApp Engine Loaded (Wasm)")
 
 	// Keep the Go program alive
+	fmt.Println("Ghost Engine Alive (Looping)")
 	select {}
 }
