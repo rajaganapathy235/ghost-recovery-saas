@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { LucideSmartphone, LucideArrowUpCircle, LucideDownload } from 'lucide-react';
 
 export default function PWAGuard({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [isStandalone, setIsStandalone] = useState(true);
   const [isIOS, setIsIOS] = useState(false);
 
@@ -34,7 +36,7 @@ export default function PWAGuard({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === 'development' || pathname?.startsWith('/admin')) {
     return <>{children}</>;
   }
 

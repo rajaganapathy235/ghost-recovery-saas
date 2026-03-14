@@ -210,6 +210,12 @@ func registerEventHandler(cli *whatsmeow.Client) {
 }
 
 func main() {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Printf("Ghost FATAL: Recovered from panic in main: %v\n", r)
+		}
+	}()
+
 	js.Global().Set("getWhatsAppPairingCode", js.FuncOf(GetPairingCode))
 	js.Global().Set("checkGhostLogin", js.FuncOf(CheckLogin))
 	js.Global().Set("getLoggedInPhone", js.FuncOf(GetLoggedInPhone))
@@ -242,5 +248,13 @@ func main() {
 	}
 
 	fmt.Println("Ghost Engine Alive (Looping)")
-	select {}
+	
+	// Robust keep-alive loop with auto-reconnect
+	for {
+		time.Sleep(10 * time.Second)
+		if client != nil && !client.IsConnected() && client.Store != nil && client.Store.ID != nil {
+			fmt.Println("Ghost: Disconnect detected in loop. Attempting silent reconnect...")
+			_ = client.Connect()
+		}
+	}
 }
