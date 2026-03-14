@@ -21,7 +21,7 @@ func GetPairingCode(this js.Value, args []js.Value) interface{} {
 	if len(args) < 1 {
 		return js.Global().Get("Promise").Call("reject", "Error: Phone number required")
 	}
-	// CAPTURE HERE: Outer scope to avoid "function" string issue
+	// CAPTURE HERE: Outer scope
 	phoneNumber := args[0].String()
 
 	handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -45,13 +45,13 @@ func GetPairingCode(this js.Value, args []js.Value) interface{} {
 			}
 
 			// 2. WAIT for the socket to authenticate and be ready for queries
-			// This prevents the "status 400: bad-request" error
+			// The server needs a few seconds to stabilize the session
 			fmt.Println("Ghost: Waiting for socket stabilization...")
-			maxWait := 50 // 5 seconds
+			maxWait := 30 // 3 seconds
 			for i := 0; i < maxWait; i++ {
 				if client.IsConnected() {
-					// We wait a bit more even if connected, to ensure internal handshakes are done
-					time.Sleep(500 * time.Millisecond)
+					// Add an extra buffer as recommended by whatsmeow for PairPhone
+					time.Sleep(2000 * time.Millisecond)
 					break
 				}
 				time.Sleep(100 * time.Millisecond)
@@ -59,8 +59,9 @@ func GetPairingCode(this js.Value, args []js.Value) interface{} {
 
 			// 3. Request the 8-digit code from WhatsApp
 			fmt.Printf("Ghost: Requesting code for %s...\n", phoneNumber)
-			// Using WhatsApp Web Chrome signature
-			code, err := client.PairPhone(context.Background(), phoneNumber, true, whatsmeow.PairClientChrome, "Ghost Recovery SaaS")
+            
+            // CRITICAL FIX: The display name MUST be in "Browser (OS)" format or WhatsApp returns 400 Bad Request
+			code, err := client.PairPhone(context.Background(), phoneNumber, true, whatsmeow.PairClientChrome, "Chrome (Mac OS)")
 			if err != nil {
 				reject.Invoke(fmt.Sprintf("WhatsApp Error: %v", err))
 				return
@@ -95,6 +96,10 @@ func main() {
 		if err != nil {
 			fmt.Printf("Ghost ERR: Failed to get device store: %v\n", err)
 		} else {
+			// Set some default props to help with identity
+			deviceStore.Platform = "chrome"
+			deviceStore.BusinessName = "Ghost SaaS"
+            
 			client = whatsmeow.NewClient(deviceStore, log)
 			fmt.Println("Ghost: Engine connecting...")
 			err = client.Connect()
