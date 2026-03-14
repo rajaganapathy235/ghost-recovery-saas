@@ -45,6 +45,7 @@ function WhatsAppLinkingContent() {
       console.error = originalError;
     };
   }, []);
+  useEffect(() => {
     // Proactively start initialization
     const startLoading = async () => {
       setLoadStatus('loading_linker');
