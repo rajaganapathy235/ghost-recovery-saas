@@ -14,7 +14,7 @@ declare global {
   }
 }
 
-export default function WhatsAppLinking() {
+function WhatsAppLinkingContent() {
   const searchParams = useSearchParams();
   const businessId = searchParams.get('businessId') || 'demo-business-id';
   
@@ -190,5 +190,13 @@ export default function WhatsAppLinking() {
       </div>
       <Script src="/wasm_exec.js" strategy="beforeInteractive" />
     </div>
+  );
+}
+
+export default function WhatsAppLinking() {
+  return (
+    <React.Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><LucideLoader2 className="w-8 h-8 animate-spin text-primary" /></div>}>
+      <WhatsAppLinkingContent />
+    </React.Suspense>
   );
 }
