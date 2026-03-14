@@ -435,6 +435,19 @@ function WhatsAppLinkingContent() {
                 </div>
               </div>
 
+              {/* Same Device Tip */}
+              <div className="bg-primary/5 border border-primary/10 rounded-3xl p-6 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <LucideSmartphone className="w-4 h-4 text-primary" />
+                  </div>
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">Same-Device Tip</h4>
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  If you are using this phone for both Ghost and WhatsApp, use <span className="text-primary font-bold">Split Screen</span> to keep Ghost visible. Browsers pause background apps, which makes pairing show "Logging in" for a long time.
+                </p>
+              </div>
+
               <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
                   <span className="text-primary font-bold">INFO:</span> This will generate a unique 8-character code. Enter this code in your WhatsApp linked devices section.
