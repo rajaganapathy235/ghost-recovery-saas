@@ -218,9 +218,9 @@ func registerEventHandler(cli *whatsmeow.Client) {
 		case *events.Connected:
 			fmt.Println("Ghost: Connected to WhatsApp socket.")
 		case *events.HistorySync:
-			fmt.Println("Ghost: History Sync detected. Skipping to save bandwidth...")
-            // We don't call anything here, just let it be. 
-            // Whatsmeow by default won't download full history unless we ask.
+			fmt.Println("Ghost: History Sync detected. Skipping processing...")
+        case *events.StreamError:
+            fmt.Printf("Ghost: Stream Error: %v\n", v.Raw)
 		case *events.LoggedOut:
 			fmt.Println("Ghost: Logged out from WhatsApp.")
 		}

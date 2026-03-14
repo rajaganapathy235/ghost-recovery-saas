@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { LucideShield, LucideArrowLeft, LucideSmartphone, LucideCheckCircle2, LucideLoader2 } from 'lucide-react';
+import { LucideShield, LucideArrowLeft, LucideSmartphone, LucideCheckCircle2, LucideLoader2, LucideVolume2 } from 'lucide-react';
 import Link from 'next/link';
 import Script from 'next/script';
 import { useSearchParams } from 'next/navigation';
@@ -32,7 +32,25 @@ function WhatsAppLinkingContent() {
   const [loadStatus, setLoadStatus] = useState<'idle' | 'loading_linker' | 'loading_engine' | 'ready' | 'error'>('idle');
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
+  const [useVoice, setUseVoice] = useState(true);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  // Voice Announcer (Background Keep-Alive)
+  useEffect(() => {
+    let t: any;
+    if (step === 2 && useVoice && code) {
+        const speak = () => {
+             const msg = new SpeechSynthesisUtterance();
+             msg.text = `Ghost pairing code is: ${code.split('').join(' ')}. I repeat: ${code.split('').join(' ')}.`;
+             msg.rate = 0.9;
+             window.speechSynthesis.speak(msg);
+             console.log("Ghost: Announcing code for background keep-alive...");
+        };
+        speak();
+        t = setInterval(speak, 15000);
+    }
+    return () => clearInterval(t);
+  }, [step, useVoice, code]);
 
   // Background Keep-Alive (Silent Audio Hack)
   useEffect(() => {
@@ -563,6 +581,25 @@ function WhatsAppLinkingContent() {
                       <span className="text-[10px] font-bold text-primary">3</span>
                     </div>
                     <p className="text-xs text-muted-foreground">Tap "Link with phone code" and enter the code above</p>
+                  </div>
+                </div>
+
+                {/* Voice Assist Toggle */}
+                <div 
+                  onClick={() => setUseVoice(!useVoice)}
+                  className={`p-5 rounded-3xl border transition-all cursor-pointer flex items-center justify-between ${useVoice ? 'bg-primary/10 border-primary/30' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${useVoice ? 'bg-primary/20' : 'bg-white/10'}`}>
+                      <LucideVolume2 className={`w-5 h-5 ${useVoice ? 'text-primary' : 'text-muted-foreground'}`} />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white uppercase tracking-wider">Voice Assist</h4>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Keep app alive by announcing code</p>
+                    </div>
+                  </div>
+                  <div className={`w-10 h-5 rounded-full relative transition-all ${useVoice ? 'bg-primary' : 'bg-white/10'}`}>
+                    <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${useVoice ? 'right-1' : 'left-1'}`} />
                   </div>
                 </div>
               </div>
