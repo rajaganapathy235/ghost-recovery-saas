@@ -46,7 +46,9 @@ export default function WhatsAppLinking() {
     
     // 1. Ensure Wasm is loaded
     const ready = await initWasm();
-    if (!ready) {
+    const pairingFn = window.getWhatsAppPairingCode;
+
+    if (!ready || !pairingFn) {
       setLoading(false);
       alert("Failed to initialize Ghost Engine. Ensure you are on a compatible browser.");
       return;
@@ -54,7 +56,7 @@ export default function WhatsAppLinking() {
 
     try {
       // 2. Request real code from WhatsApp via Wasm
-      const realCode = await window.getWhatsAppPairingCode(phone.replace(/[^0-9]/g, ''));
+      const realCode = await pairingFn(phone.replace(/\D/g, ''));
       setCode(realCode);
       
       // 3. Persist in DB
