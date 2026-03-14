@@ -168,18 +168,29 @@ func GetPairingCode(this js.Value, args []js.Value) interface{} {
 				}
 			}
 
-			fmt.Println("Ghost: Waiting for socket stabilization (Optimized)...")
-			maxWait := 20 // 2 seconds max
+			fmt.Println("Ghost: Waiting for socket stabilization (Safety)...")
+			maxWait := 30 // 3 seconds max
 			for i := 0; i < maxWait; i++ {
 				if client.IsConnected() {
-					time.Sleep(800 * time.Millisecond) // Faster shake for modern networks
+					time.Sleep(2000 * time.Millisecond) // Safety wait for protocol finish
 					break
 				}
 				time.Sleep(100 * time.Millisecond)
 			}
 
-			fmt.Printf("Ghost: Requesting code for %s...\n", phoneNumber)
-			code, err := client.PairPhone(context.Background(), phoneNumber, true, whatsmeow.PairClientChrome, "Ghost Recovery")
+			fmt.Printf("Ghost: Requesting code for %s (with retries)...\n", phoneNumber)
+            
+            var code string
+            var err error
+            for attempt := 1; attempt <= 3; attempt++ {
+                code, err = client.PairPhone(context.Background(), phoneNumber, true, whatsmeow.PairClientChrome, "Ghost Recovery")
+                if err == nil {
+                    break
+                }
+                fmt.Printf("Ghost: Pairing attempt %d failed: %v. Retrying in 2s...\n", attempt, err)
+                time.Sleep(2 * time.Second)
+            }
+
 			if err != nil {
 				reject.Invoke(fmt.Sprintf("WhatsApp Error: %v", err))
 				return
