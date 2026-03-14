@@ -135,13 +135,28 @@ function WhatsAppLinkingContent() {
       const interval = setInterval(() => {
         if (window.checkGhostLogin?.()) {
           console.log("Ghost: Pairing success detected via polling!");
-          setStep(3); // Add a 3rd step for success or just link back
+          setStep(3); 
           clearInterval(interval);
         }
       }, 2000);
       return () => clearInterval(interval);
     }
-  }, [step]);
+    
+    if (step === 3) {
+      // Trigger Live Test Message
+      const triggerTest = async () => {
+        try {
+           const cleanPhone = phone.replace(/\D/g, '');
+           console.log("Ghost: Triggering Live Test Message to", cleanPhone);
+           await window.sendGhostMessage?.(cleanPhone, "iam live");
+           console.log("Ghost: SUCCESS! Test message sent.");
+        } catch (err) {
+           console.error("Ghost: Test message failed:", err);
+        }
+      };
+      triggerTest();
+    }
+  }, [step, phone]);
 
   const generateCode = async () => {
     if (loadStatus !== 'ready') {
@@ -281,51 +296,45 @@ function WhatsAppLinkingContent() {
             </div>
           )}
 
-          {step === 2 && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="space-y-2 text-center">
-                <h2 className="text-2xl font-bold text-white">Your Link Code</h2>
-                <p className="text-muted-foreground text-sm">Enter this on your phone</p>
+          {step === 3 && (
+            <div className="space-y-10 animate-in fade-in zoom-in-95 duration-700 text-center py-4">
+              <div className="space-y-4">
+                <div className="w-24 h-24 bg-primary/20 rounded-[2.5rem] flex items-center justify-center mx-auto border border-primary/30 relative">
+                   <LucideCheckCircle2 className="w-12 h-12 text-primary" />
+                   <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full animate-ping" />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-3xl font-bold text-white font-outfit">Successfully Linked!</h2>
+                  <p className="text-muted-foreground">Ghost Engine is now managing your recovery.</p>
+                </div>
               </div>
 
-              <div className="flex justify-center flex-wrap gap-2">
-                {code.split('').map((char, i) => (
-                  <div key={i} className="w-10 h-14 glass border border-primary/30 rounded-xl flex items-center justify-center text-2xl font-bold text-primary font-mono shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-                    {char}
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center mt-0.5 shrink-0">
-                      <span className="text-[10px] font-bold text-primary">1</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Open WhatsApp on your phone</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center mt-0.5 shrink-0">
-                      <span className="text-[10px] font-bold text-primary">2</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Go to Settings &gt; Linked Devices</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center mt-0.5 shrink-0">
-                      <span className="text-[10px] font-bold text-primary">3</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Tap "Link with phone code" and enter the code above</p>
-                  </div>
+              <div className="space-y-4">
+                <div className="glass p-6 rounded-3xl border border-white/5 space-y-4 bg-primary/5">
+                   <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                         <LucideLoader2 className="w-4 h-4 text-primary animate-spin" />
+                      </div>
+                      <div className="text-left">
+                         <p className="text-xs font-bold text-white">Live Test Triggered</p>
+                         <p className="text-[10px] text-primary/70">Sending "iam live" to {phone}</p>
+                      </div>
+                   </div>
+                   <div className="h-px bg-white/5 w-full" />
+                   <div className="text-[10px] text-muted-foreground/60 leading-relaxed italic">
+                      Checking your own WhatsApp for the "iam live" message confirms the Ghost Engine has full control.
+                   </div>
                 </div>
 
                 <Link 
                   href="/"
-                  className="w-full primary-gradient text-black py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                  className="w-full primary-gradient text-black py-5 rounded-[1.5rem] font-bold text-lg flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-[0_0_30px_rgba(16,185,129,0.4)] mt-4"
                 >
-                  <LucideCheckCircle2 className="w-5 h-5" />
-                  Done, I've Linked
+                  Return to Dashboard
                 </Link>
               </div>
+
+              <p className="text-[10px] text-muted-foreground tracking-widest uppercase font-bold opacity-30">Ghost Engine v2.5 Stable</p>
             </div>
           )}
         </div>
