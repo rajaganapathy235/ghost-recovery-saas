@@ -1,23 +1,17 @@
-import { Pool } from 'pg'
-import { PrismaPg } from '@prisma/adapter-pg'
-import { PrismaClient } from '@prisma/client'
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '@prisma/client';
 
-const prismaClientSingleton = () => {
-  const connectionString = `${process.env.DATABASE_URL}`
-  const pool = new Pool({ connectionString })
-  // @ts-ignore - Bypass version mismatch in @types/pg between Prisma adapter and local types
-  const adapter = new PrismaPg(pool)
-  return new PrismaClient({ adapter })
-}
+const connectionString = process.env.DATABASE_URL;
 
+const pool = new Pool({ connectionString }) as any;
+const adapter = new PrismaPg(pool);
 
-declare global {
-  var prisma: undefined | ReturnType<typeof prismaClientSingleton>
-}
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
-const prisma = globalThis.prisma ?? prismaClientSingleton()
+export const prisma = globalForPrisma.prisma || new PrismaClient({ adapter });
 
-export default prisma
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
-if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma
+export default prisma;
 
