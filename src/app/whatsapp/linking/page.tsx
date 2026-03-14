@@ -75,15 +75,22 @@ function WhatsAppLinkingContent() {
         go.run(result.instance);
         
         // IMPORTANT: Wait for the engine to register its functions
-        console.log("Ghost: Engine started, waiting for registration...");
+        console.log("Ghost: Engine started, waiting for registration (15s timeout)...");
         let registrationRetries = 0;
-        while (typeof window.getWhatsAppPairingCode !== 'function' && registrationRetries < 50) {
+        const maxRetries = 150; // 15 seconds
+        
+        while (typeof window.getWhatsAppPairingCode !== 'function' && registrationRetries < maxRetries) {
+          // Check if engine is still running/has exports
+          if (!result.instance.exports) {
+              throw new Error("Ghost Engine crashed during initialization.");
+          }
           await new Promise(r => setTimeout(r, 100));
           registrationRetries++;
         }
 
         if (typeof window.getWhatsAppPairingCode !== 'function') {
-           throw new Error("Ghost Engine started but failed to register functions (timeout).");
+           // Debug: Check if there was any console output trapped in the linker
+           throw new Error("Ghost Engine registration timed out after 15s. This usually happens on slow devices or low memory.");
         }
 
         setLoadStatus('ready');
