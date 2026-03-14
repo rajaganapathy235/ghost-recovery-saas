@@ -152,7 +152,6 @@ export async function searchCustomer(phone: string, businessId: string) {
 
 export async function onboardBusiness(name: string, niche: string) {
   try {
-    console.log('Onboarding starting for:', { name, niche });
     const business = await prisma.business.create({
       data: {
         name,
@@ -160,7 +159,6 @@ export async function onboardBusiness(name: string, niche: string) {
         plan: 'FREE',
       }
     });
-    console.log('Business created:', business.id);
 
     // Auto-seed default services based on niche
     const defaultServices = {
@@ -182,25 +180,18 @@ export async function onboardBusiness(name: string, niche: string) {
     };
 
     const servicesToSeed = defaultServices[niche as keyof typeof defaultServices] || defaultServices['Salon'];
-    console.log('Seeding services:', servicesToSeed.length);
 
-    const createdServices = await prisma.service.createMany({
+    await prisma.service.createMany({
       data: servicesToSeed.map(s => ({
         ...s,
         businessId: business.id
       }))
     });
-    console.log('Services seeded:', createdServices.count);
 
     return { success: true, businessId: business.id };
   } catch (error: any) {
-    console.error('Onboarding failed detailed error:', {
-      message: error.message,
-      code: error.code,
-      meta: error.meta,
-      stack: error.stack
-    });
-    return { success: false, error: 'Onboarding failed', details: error.message };
+    console.error('Onboarding failed:', error);
+    return { success: false, error: 'Onboarding failed' };
   }
 }
 
