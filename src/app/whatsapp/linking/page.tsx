@@ -602,6 +602,14 @@ function WhatsAppLinkingContent() {
                     <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${useVoice ? 'right-1' : 'left-1'}`} />
                   </div>
                 </div>
+
+                <button 
+                  onClick={() => window.forceReconnectGhost?.()}
+                  className="w-full py-2 flex items-center justify-center gap-1.5 opacity-40 hover:opacity-100 transition-all group"
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary/50 group-hover:bg-primary transition-all" />
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Stuck? Tap to Nudge Link</span>
+                </button>
               </div>
             </div>
           )}
