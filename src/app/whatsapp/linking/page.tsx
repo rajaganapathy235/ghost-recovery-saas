@@ -24,8 +24,27 @@ function WhatsAppLinkingContent() {
   const [loading, setLoading] = useState(false);
   const [loadStatus, setLoadStatus] = useState<'idle' | 'loading_linker' | 'loading_engine' | 'ready' | 'error'>('idle');
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
+  const [logs, setLogs] = useState<string[]>([]);
 
   useEffect(() => {
+    // Hijack console for debugging
+    const originalLog = console.log;
+    const originalError = console.error;
+    
+    console.log = (...args) => {
+      setLogs(prev => [...prev.slice(-20), `LOG: ${args.join(' ')}`]);
+      originalLog(...args);
+    };
+    console.error = (...args) => {
+      setLogs(prev => [...prev.slice(-20), `ERR: ${args.join(' ')}`]);
+      originalError(...args);
+    };
+
+    return () => {
+      console.log = originalLog;
+      console.error = originalError;
+    };
+  }, []);
     // Proactively start initialization
     const startLoading = async () => {
       setLoadStatus('loading_linker');
@@ -202,8 +221,22 @@ function WhatsAppLinkingContent() {
                      <p className="text-[10px] text-primary animate-pulse font-bold">Downloading Ghost Engine (26MB)...</p>
                    )}
                    {loadStatus === 'error' && (
-                     <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[10px] font-bold text-center w-full">
-                       {errorDetails}
+                     <div className="space-y-4 w-full">
+                       <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[10px] font-bold text-center w-full">
+                         {errorDetails}
+                       </div>
+                       <div className="glass p-4 rounded-xl border border-white/5 space-y-2">
+                         <p className="text-[8px] uppercase tracking-widest text-muted-foreground font-bold">Technical Logs</p>
+                         <div className="max-h-32 overflow-y-auto font-mono text-[8px] text-white/40 leading-relaxed break-all whitespace-pre-wrap">
+                           {logs.join('\n')}
+                         </div>
+                       </div>
+                       <button 
+                        onClick={() => window.location.reload()}
+                        className="w-full py-2 text-[10px] font-bold text-primary hover:underline"
+                       >
+                        Tap to Retry
+                       </button>
                      </div>
                    )}
                    {loadStatus === 'ready' && !loading && (
