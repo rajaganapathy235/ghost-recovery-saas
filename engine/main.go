@@ -7,15 +7,59 @@ import (
 	"time"
 
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/store/sqlstore"
+	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
+	"google.golang.org/protobuf/proto"
 	waLog "go.mau.fi/whatsmeow/util/log"
 )
 
 var client *whatsmeow.Client
 var log waLog.Logger
+
+func SendMessage(this js.Value, args []js.Value) interface{} {
+	handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		resolve := args[0]
+		reject := args[1]
+
+		if len(args) < 2 {
+			reject.Invoke("Error: Target and Message required")
+			return nil
+		}
+		target := args[0].String()
+		messageText := args[1].String()
+
+		go func() {
+			if client == nil || !client.IsConnected() {
+				reject.Invoke("Error: Engine not connected")
+				return
+			}
+
+			recipient, err := types.ParseJID(target + "@s.whatsapp.net")
+			if err != nil {
+				reject.Invoke(fmt.Sprintf("Invalid JID: %v", err))
+				return
+			}
+
+			msg := &waE2E.Message{
+				Conversation: proto.String(messageText),
+			}
+
+			resp, err := client.SendMessage(context.Background(), recipient, msg)
+			if err != nil {
+				reject.Invoke(fmt.Sprintf("Send Failed: %v", err))
+				return
+			}
+			fmt.Printf("Ghost: Message sent! ID: %s\n", resp.ID)
+			resolve.Invoke(resp.ID)
+		}()
+		return nil
+	})
+	return js.Global().Get("Promise").New(handler)
+}
 
 func CheckLogin(this js.Value, args []js.Value) interface{} {
     if client == nil || client.Store == nil || client.Store.ID == nil {
@@ -105,6 +149,7 @@ func main() {
 	// 1. IMMEDIATE REGISTRATION
 	js.Global().Set("getWhatsAppPairingCode", js.FuncOf(GetPairingCode))
 	js.Global().Set("checkGhostLogin", js.FuncOf(CheckLogin))
+	js.Global().Set("sendGhostMessage", js.FuncOf(SendMessage))
 	fmt.Println("Ghost: Bridges registered.")
 
 	log = waLog.Stdout("Main", "INFO", true)

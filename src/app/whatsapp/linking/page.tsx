@@ -14,6 +14,7 @@ declare global {
     loadGhostSession?: (session: string) => void;
     saveGhostSession?: (session: string) => void;
     checkGhostLogin?: () => boolean;
+    sendGhostMessage?: (target: string, text: string) => Promise<string>;
   }
 }
 
