@@ -5,7 +5,7 @@ import { LucideShield, LucideArrowLeft, LucideSmartphone, LucideCheckCircle2, Lu
 import Link from 'next/link';
 import Script from 'next/script';
 import { useSearchParams } from 'next/navigation';
-import { linkWhatsApp, scheduleTestReminder, processDueReminders, markReminderSent } from '@/app/actions';
+import { linkWhatsApp, scheduleTestReminder, processDueReminders, markReminderSent, savePushSubscription } from '@/app/actions';
 
 declare global {
   interface Window {
@@ -41,6 +41,26 @@ function WhatsAppLinkingContent() {
   // 1. Session Persistence Loop
   useEffect(() => {
     if (loadStatus === 'ready') {
+       // Auto-subscribe to push
+       const setupPush = async () => {
+         try {
+           const registration = await navigator.serviceWorker.ready;
+           const existingSub = await registration.pushManager.getSubscription();
+           
+           if (!existingSub) {
+             const sub = await registration.pushManager.subscribe({
+               userVisibleOnly: true,
+               applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+             });
+             await savePushSubscription(businessId, sub);
+             console.log("Ghost: Push Subscription secured.");
+           }
+         } catch (err) {
+           console.warn("Ghost: Push subscription skipped (likely permission denied or local dev):", err);
+         }
+       };
+       setupPush();
+
        const persistenceInterval = setInterval(() => {
           if (window.checkGhostLogin?.()) {
              const session = window.saveGhostSession?.();

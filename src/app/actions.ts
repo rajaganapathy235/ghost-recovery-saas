@@ -1,7 +1,14 @@
-'use server';
-
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import webpush from 'web-push';
+
+if (process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    'mailto:admin@ghost-recovery.com',
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!
+  );
+}
 
 export async function markVisit(phone: string, serviceId: string) {
   try {
@@ -353,5 +360,48 @@ export async function createAdminMessage(businessId: string, phone: string, mess
     return { success: true };
   } catch (error) {
     return { success: false, error: 'Failed to create message' };
+  }
+}
+
+export async function savePushSubscription(businessId: string, subscription: any) {
+  try {
+    await prisma.business.update({
+      where: { id: businessId },
+      data: {
+        pushSubscription: JSON.stringify(subscription)
+      }
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to save sub:', error);
+    return { success: false };
+  }
+}
+
+export async function sendPushWakeUp(businessId: string) {
+  try {
+    const business = await prisma.business.findUnique({
+      where: { id: businessId },
+      select: { pushSubscription: true }
+    });
+
+    if (!business?.pushSubscription) {
+      throw new Error('No push subscription found for this business. The user needs to grant notification permission in their PWA.');
+    }
+
+    const sub = JSON.parse(business.pushSubscription);
+    await webpush.sendNotification(
+      sub,
+      JSON.stringify({
+        title: 'Ghost Node Wakeup',
+        body: 'System command received. Syncing WhatsApp engine...',
+        type: 'WAKEUP'
+      })
+    );
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Push failed:', error);
+    return { success: false, error: error.message || 'Push failed' };
   }
 }

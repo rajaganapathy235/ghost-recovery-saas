@@ -7,7 +7,7 @@ import {
   LucideLogOut, LucideExternalLink, LucideCheckCircle2, LucideXCircle,
   LucideActivity, LucideTrendingUp, LucidePlus, LucideLoader2, LucideSearch
 } from 'lucide-react';
-import { getAdminData, createAdminMessage } from '@/app/actions';
+import { getAdminData, createAdminMessage, sendPushWakeUp } from '@/app/actions';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -43,7 +43,10 @@ export default function AdminDashboard() {
     setSending(true);
     const res = await createAdminMessage(selectedBiz, testPhone, "Admin forced test via Control Panel");
     if (res.success) {
-      alert("Test command sent! The client PWA will pick it up and dispatch via WhatsApp shortly.");
+      // 2. Trigger instant wakeup via push
+      await sendPushWakeUp(selectedBiz).catch(e => console.error("Optional wakeup push failed:", e));
+      
+      alert("Test command sent! Command DISPATCHED + Push WAKEUP signal sent.");
       setShowModal(false);
     } else {
       alert(res.error);

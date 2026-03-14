@@ -20,6 +20,7 @@ model Business {
   customers      Customer[]
   recoveryLogs   RecoveryLog[]
   services       Service[]
+  pushSubscription String?      @db.Text
 }
 
 model Service {
