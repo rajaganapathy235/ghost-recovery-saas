@@ -266,9 +266,21 @@ func main() {
 
 	fmt.Println("Ghost Engine Alive (Looping)")
 	
-	// Robust keep-alive loop with auto-reconnect
+	// Robust keep-alive loop with auto-reconnect and drift detection
 	for {
-		time.Sleep(10 * time.Second)
+        start := time.Now()
+		time.Sleep(5 * time.Second)
+        elapsed := time.Since(start)
+
+        // Drift Detection: If we slept for > 15s when we asked for 5s, 
+        // it means the browser throttled us. 
+        if elapsed > 15 * time.Second {
+            fmt.Printf("Ghost: Background drift detected (%v). Force stabilizing...\n", elapsed)
+            if client != nil {
+                _ = client.Connect()
+            }
+        }
+
 		if client != nil && !client.IsConnected() && client.Store != nil && client.Store.ID != nil {
 			fmt.Println("Ghost: Disconnect detected in loop. Attempting silent reconnect...")
 			_ = client.Connect()

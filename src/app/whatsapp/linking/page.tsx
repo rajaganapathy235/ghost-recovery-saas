@@ -31,6 +31,37 @@ function WhatsAppLinkingContent() {
   const [loadStatus, setLoadStatus] = useState<'idle' | 'loading_linker' | 'loading_engine' | 'ready' | 'error'>('idle');
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  // Background Keep-Alive (Silent Audio Hack)
+  useEffect(() => {
+    if (step === 2 && !audioRef.current) {
+        const audio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
+        audio.loop = true;
+        audio.play().catch(() => console.warn("Ghost: Background audio hack blocked by browser (Needs user interaction first)"));
+        audioRef.current = audio;
+    }
+    return () => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current = null;
+        }
+    }
+  }, [step]);
+
+  // Priority Re-stabilization on Return
+  useEffect(() => {
+      const handleVisibility = () => {
+          if (document.visibilityState === 'visible') {
+              console.log("Ghost: App returned to foreground. Forcing engine check...");
+              if (window.checkGhostLogin?.()) {
+                  setStep(3);
+              }
+          }
+      };
+      document.addEventListener('visibilitychange', handleVisibility);
+      return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
   
   // Testing States
   const [testPhone, setTestPhone] = useState('');
