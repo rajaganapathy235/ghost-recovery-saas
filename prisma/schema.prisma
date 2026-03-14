@@ -12,6 +12,7 @@ model Business {
   id             String        @id @default(cuid())
   name           String
   niche          String?
+  whatsappNumber String?
   whatsappStatus String?       @default("DISCONNECTED")
   plan           String        @default("FREE")
   createdAt      DateTime      @default(now())

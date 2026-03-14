@@ -207,3 +207,19 @@ export async function getServices(businessId: string) {
   }
 }
 
+export async function linkWhatsApp(businessId: string, phone: string) {
+  try {
+    await prisma.business.update({
+      where: { id: businessId },
+      data: {
+        whatsappNumber: phone,
+        whatsappStatus: 'CONNECTED'
+      }
+    });
+    revalidatePath('/dashboard');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to link WhatsApp:', error);
+    return { success: false, error: 'Failed to link WhatsApp' };
+  }
+}

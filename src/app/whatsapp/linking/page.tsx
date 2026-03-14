@@ -3,22 +3,30 @@
 import React, { useState, useEffect } from 'react';
 import { LucideShield, LucideArrowLeft, LucideSmartphone, LucideCheckCircle2, LucideLoader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { linkWhatsApp } from '@/app/actions';
 
 export default function WhatsAppLinking() {
+  const searchParams = useSearchParams();
+  const businessId = searchParams.get('businessId') || 'demo-business-id';
+  
   const [step, setStep] = useState(1);
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState('+91-9597992677');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const generateCode = () => {
+  const generateCode = async () => {
     setLoading(true);
-    // Simulate API call to generate device code
+    // 1. Link in DB
+    const res = await linkWhatsApp(businessId, phone);
+    
+    // 2. Simulate animation for UX
     setTimeout(() => {
       const randomCode = Math.random().toString(36).substring(2, 10).toUpperCase();
       setCode(randomCode);
       setStep(2);
       setLoading(false);
-    }, 2000);
+    }, 1500);
   };
 
   return (

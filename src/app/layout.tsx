@@ -15,6 +15,15 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "Ghost Recovery | Premium Customer Recovery SaaS",
   description: "Recover ghost customers automatically with the power of WhatsApp.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Ghost Recovery",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export default function RootLayout({
