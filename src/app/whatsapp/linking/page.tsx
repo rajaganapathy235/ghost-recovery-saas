@@ -18,6 +18,7 @@ declare global {
     sendGhostMessage?: (target: string, text: string) => Promise<string>;
     logoutGhost?: () => string | null;
     forceReconnectGhost?: () => void;
+    resetGhostEngine?: () => void;
   }
 }
 
@@ -610,6 +611,24 @@ function WhatsAppLinkingContent() {
                   <div className="w-1.5 h-1.5 rounded-full bg-primary/50 group-hover:bg-primary transition-all" />
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Stuck? Tap to Nudge Link</span>
                 </button>
+
+                <div className="pt-4 border-t border-white/5 space-y-3">
+                  <div className="flex items-center gap-2 px-1">
+                    <div className="w-1 h-1 rounded-full bg-rose-500" />
+                    <p className="text-[8px] uppercase tracking-widest text-rose-500 font-bold">Emergency Tools</p>
+                  </div>
+                  <button 
+                    onClick={() => {
+                        if(confirm("This will completely reset the Ghost Engine. Use only if Link Nudge fails. Continue?")) {
+                            window.resetGhostEngine?.();
+                        }
+                    }}
+                    className="w-full py-3 rounded-2xl bg-rose-500/5 border border-rose-500/10 hover:bg-rose-500/10 transition-all text-rose-500 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2"
+                  >
+                    <LucideShield className="w-3 h-3" />
+                    Hard Reset Engine
+                  </button>
+                </div>
               </div>
             </div>
           )}
