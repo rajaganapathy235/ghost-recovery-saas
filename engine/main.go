@@ -6,7 +6,9 @@ import (
 	"syscall/js"
 
 	"go.mau.fi/whatsmeow"
-	"go.mau.fi/whatsmeow/store"
+	"go.mau.fi/whatsmeow/store/sqlstore"
+	_ "github.com/ncruces/go-sqlite3/driver"
+	_ "github.com/ncruces/go-sqlite3/embed"
 	waLog "go.mau.fi/whatsmeow/util/log"
 )
 
@@ -15,7 +17,6 @@ var log waLog.Logger
 
 // GetPairingCode is the function called from JS
 func GetPairingCode(this js.Value, args []js.Value) interface{} {
-	// Handler for async result
 	handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		resolve := args[0]
 		reject := args[1]
@@ -32,7 +33,6 @@ func GetPairingCode(this js.Value, args []js.Value) interface{} {
 				return
 			}
 
-			// 1. Ensure we are connected
 			if !client.IsConnected() {
 				fmt.Println("Ghost: Engine not connected, attempting to reconnect...")
 				err := client.Connect()
@@ -40,11 +40,8 @@ func GetPairingCode(this js.Value, args []js.Value) interface{} {
 					reject.Invoke(fmt.Sprintf("Connection Failed: %v", err))
 					return
 				}
-				// Wait a bit for connection to stabilize
-				fmt.Println("Ghost: Waiting for connection...")
 			}
 
-			// 2. Request the 8-digit code from WhatsApp
 			fmt.Printf("Ghost: Requesting code for %s...\n", phoneNumber)
 			code, err := client.PairPhone(context.Background(), phoneNumber, true, whatsmeow.PairClientChrome, "SaaS Reminder PWA")
 			if err != nil {
@@ -58,34 +55,36 @@ func GetPairingCode(this js.Value, args []js.Value) interface{} {
 		return nil
 	})
 
-	// Return a Promise to JS
-	promiseClass := js.Global().Get("Promise")
-	return promiseClass.New(handler)
+	return js.Global().Get("Promise").New(handler)
 }
 
 func main() {
-	// 1. IMMEDIATE REGISTRATION
 	js.Global().Set("getWhatsAppPairingCode", js.FuncOf(GetPairingCode))
 	fmt.Println("Ghost: Function 'getWhatsAppPairingCode' registered.")
 
 	log = waLog.Stdout("Main", "INFO", true)
 	
-	// 2. BACKGROUND INITIALIZATION
-	fmt.Println("Ghost: Initializing in-memory store (Wasm compatible)...")
-	
-	// Create a minimal in-memory device store
-	deviceStore := store.NewDevice()
-	
-	client = whatsmeow.NewClient(deviceStore, log)
-	fmt.Println("Ghost: Engine connecting...")
-	err := client.Connect()
+	fmt.Println("Ghost: Initializing internal store (Wasm SQLite)...")
+	// Use ncruces/go-sqlite3 which works in JS/Wasm
+	container, err := sqlstore.New(context.Background(), "sqlite3", "file:session.db?mode=memory&cache=shared", log)
 	if err != nil {
-		fmt.Printf("Ghost ERR: Failed to start connection: %v\n", err)
+		fmt.Printf("Ghost ERR: Failed to create store: %v\n", err)
 	} else {
-		fmt.Println("Ghost: Engine connection routine started.")
+		deviceStore, err := container.GetFirstDevice(context.Background())
+		if err != nil {
+			fmt.Printf("Ghost ERR: Failed to get device store: %v\n", err)
+		} else {
+			client = whatsmeow.NewClient(deviceStore, log)
+			fmt.Println("Ghost: Engine connecting...")
+			err = client.Connect()
+			if err != nil {
+				fmt.Printf("Ghost ERR: Failed to start connection: %v\n", err)
+			} else {
+				fmt.Println("Ghost: Engine connection routine started.")
+			}
+		}
 	}
 
-	// Keep the Go program alive
 	fmt.Println("Ghost Engine Alive (Looping)")
 	select {}
 }
