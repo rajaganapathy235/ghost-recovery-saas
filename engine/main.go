@@ -114,8 +114,25 @@ func SendMessage(this js.Value, sendMessageArgs []js.Value) interface{} {
 		reject := promiseArgs[1]
 
 		go func() {
-			if client == nil || !client.IsConnected() {
-				reject.Invoke("Error: Engine not connected")
+			if client == nil {
+				reject.Invoke("Error: Engine not initialized")
+				return
+			}
+
+            // Auto-Reconnect Logic for Messaging
+            if !client.IsConnected() && client.Store.ID != nil {
+                fmt.Println("Ghost: Message requested while disconnected. Attempting auto-reconnect...")
+                err := client.Connect()
+                if err != nil {
+                    fmt.Printf("Ghost ERR: Auto-reconnect failed: %v\n", err)
+                } else {
+                    // Give it a moment to stabilize
+                    time.Sleep(3 * time.Second)
+                }
+            }
+
+			if !client.IsConnected() {
+				reject.Invoke("Error: Engine not connected (Auto-reconnect failed)")
 				return
 			}
 
@@ -253,7 +270,7 @@ func main() {
 	js.Global().Set("logoutGhost", js.FuncOf(LogoutGhost))
 	js.Global().Set("saveGhostSession", js.FuncOf(SaveGhostSession))
 	js.Global().Set("loadGhostSession", js.FuncOf(LoadGhostSession))
-	fmt.Println("Ghost: Engine V1.4 Bridges registered.")
+	fmt.Println("Ghost: Engine V1.5 Bridges registered.")
 
 	log = waLog.Stdout("Main", "INFO", true)
 	
