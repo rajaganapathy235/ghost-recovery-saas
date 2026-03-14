@@ -238,12 +238,27 @@ func main() {
 		if err != nil {
 			fmt.Printf("Ghost ERR: Failed to get device store: %v\n", err)
 		} else {
+            if deviceStore == nil {
+                fmt.Println("Ghost: No device found in memory, creating fresh device...")
+                deviceStore = container.NewDevice()
+            }
 			deviceStore.Platform = "chrome"
 			deviceStore.BusinessName = "Ghost SaaS"
 			client = whatsmeow.NewClient(deviceStore, log)
 			registerEventHandler(client)
 			fmt.Println("Ghost: Engine connecting...")
-			client.Connect()
+            
+            go func() {
+                defer func() {
+                    if r := recover(); r != nil {
+                        fmt.Printf("Ghost: Connection routine recovered from panic: %v\n", r)
+                    }
+                }()
+                err := client.Connect()
+                if err != nil {
+                    fmt.Printf("Ghost: Initial connection failed: %v\n", err)
+                }
+            }()
 		}
 	}
 
