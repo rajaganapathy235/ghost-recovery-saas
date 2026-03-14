@@ -300,3 +300,58 @@ export async function markReminderSent(logId: string) {
      return { success: false };
    }
 }
+
+export async function getAdminData() {
+  try {
+    const [businesses, logs, totalRevenue] = await Promise.all([
+      prisma.business.findMany({
+        include: {
+          _count: { select: { customers: true, recoveryLogs: true } }
+        }
+      }),
+      prisma.recoveryLog.findMany({
+        take: 10,
+        orderBy: { sentAt: 'desc' },
+        include: { business: true, customer: true }
+      }),
+      prisma.recoveryLog.aggregate({
+        where: { status: 'RECOVERED' },
+        _sum: { revenueAmount: true }
+      })
+    ]);
+
+    return { 
+      success: true, 
+      businesses, 
+      recentLogs: logs,
+      totalRevenue: totalRevenue._sum.revenueAmount || 0 
+    };
+  } catch (error) {
+    console.error('Admin data fetch failed:', error);
+    return { success: false, error: 'Failed to fetch admin data' };
+  }
+}
+
+export async function createAdminMessage(businessId: string, phone: string, message: string) {
+  try {
+    const customer = await prisma.customer.upsert({
+      where: { phone_businessId: { phone, businessId } },
+      update: {},
+      create: { phone, businessId, name: "Admin Created" }
+    });
+
+    await prisma.recoveryLog.create({
+      data: {
+        businessId,
+        customerId: customer.id,
+        status: 'SCHEDULED',
+        sentAt: new Date() // Send ASAP
+      }
+    });
+
+    revalidatePath('/admin/dashboard');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Failed to create message' };
+  }
+}
