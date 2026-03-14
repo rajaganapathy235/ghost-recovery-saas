@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { searchCustomer, markVisit, getServices } from '@/app/actions';
-import { CheckCircle2, User, Clock, ChevronRight, X, Smartphone, Zap } from 'lucide-react';
+import { CheckCircle2, User, Clock, ChevronRight, X, Smartphone, Zap, Shield } from 'lucide-react';
 
 interface QuickVisitProps {
   businessId: string;
@@ -93,7 +93,21 @@ export default function QuickVisit({ businessId }: QuickVisitProps) {
   }
 
   return (
-    <div className="space-y-8 max-w-md mx-auto">
+    <div className="max-w-md mx-auto space-y-6">
+      {/* WhatsApp Status Header - High Visibility */}
+      <div className="glass p-5 rounded-[2.5rem] border-primary/20 bg-primary/5 flex items-center justify-between shadow-[0_0_20px_rgba(16,185,129,0.1)]">
+        <div className="space-y-0.5">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest leading-none">WhatsApp Engine</span>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-xs font-bold text-primary">CONNECTED (GHOST MODE)</span>
+          </div>
+        </div>
+        <Shield className="w-5 h-5 text-primary opacity-50" />
+      </div>
+
+      <h1 className="text-3xl font-bold font-outfit text-white">Quick Visit Entry</h1>
+
       {/* Phone Entry Section */}
       <div className="space-y-6">
         <div className="p-8 glass rounded-[2.5rem] border border-white/10 relative overflow-hidden">
@@ -163,22 +177,22 @@ export default function QuickVisit({ businessId }: QuickVisitProps) {
             </div>
           </div>
 
-          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar relative z-10">
+          <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar relative z-10">
             {services.map(s => (
               <button
                 key={s.id}
                 onClick={() => setSelectedService(s.id)}
-                className={`w-full flex items-center justify-between p-5 rounded-2xl border transition-all text-left group ${
+                className={`w-full flex items-center justify-between p-6 rounded-[2rem] border-2 transition-all duration-300 text-left group min-h-[100px] ${
                   selectedService === s.id
-                    ? 'border-primary bg-primary/10 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
+                    ? 'border-primary bg-primary/10 shadow-[0_0_20px_rgba(16,185,129,0.2)]'
                     : 'border-white/5 bg-white/5 hover:bg-white/10'
                 }`}
               >
                 <div className="space-y-1">
-                  <span className={`font-bold block transition-colors ${selectedService === s.id ? 'text-primary' : 'text-white'}`}>{s.name}</span>
-                  <span className="text-[10px] text-muted-foreground block">{s.recoveryDays} day recovery cycle</span>
+                  <span className={`font-bold text-lg block leading-tight transition-colors ${selectedService === s.id ? 'text-primary' : 'text-white'}`}>{s.name}</span>
+                  <span className="text-[10px] text-muted-foreground font-medium block opacity-70">{s.recoveryDays} Day Cycle</span>
                 </div>
-                <div className="text-lg font-bold font-outfit text-white">₹{s.price}</div>
+                <div className="text-xl font-bold font-outfit text-white">₹{s.price}</div>
               </button>
             ))}
             

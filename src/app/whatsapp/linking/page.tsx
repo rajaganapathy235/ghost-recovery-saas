@@ -3,8 +3,16 @@
 import React, { useState, useEffect } from 'react';
 import { LucideShield, LucideArrowLeft, LucideSmartphone, LucideCheckCircle2, LucideLoader2 } from 'lucide-react';
 import Link from 'next/link';
+import Script from 'next/script';
 import { useSearchParams } from 'next/navigation';
 import { linkWhatsApp } from '@/app/actions';
+
+declare global {
+  interface Window {
+    Go: any;
+    getWhatsAppPairingCode: (phone: string) => Promise<string>;
+  }
+}
 
 export default function WhatsAppLinking() {
   const searchParams = useSearchParams();
@@ -14,19 +22,51 @@ export default function WhatsAppLinking() {
   const [phone, setPhone] = useState('+91-9597992677');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [wasmLoaded, setWasmLoaded] = useState(false);
+
+  const initWasm = async () => {
+    if (window.getWhatsAppPairingCode) return true;
+    
+    const go = new window.Go();
+    try {
+      const result = await WebAssembly.instantiateStreaming(
+        fetch("/whatsapp.wasm"),
+        go.importObject
+      );
+      go.run(result.instance);
+      return true;
+    } catch (err) {
+      console.error("Wasm Loading Failed:", err);
+      return false;
+    }
+  };
 
   const generateCode = async () => {
     setLoading(true);
-    // 1. Link in DB
-    const res = await linkWhatsApp(businessId, phone);
     
-    // 2. Simulate animation for UX
-    setTimeout(() => {
-      const randomCode = Math.random().toString(36).substring(2, 10).toUpperCase();
-      setCode(randomCode);
-      setStep(2);
+    // 1. Ensure Wasm is loaded
+    const ready = await initWasm();
+    if (!ready) {
       setLoading(false);
-    }, 1500);
+      alert("Failed to initialize Ghost Engine. Ensure you are on a compatible browser.");
+      return;
+    }
+
+    try {
+      // 2. Request real code from WhatsApp via Wasm
+      const realCode = await window.getWhatsAppPairingCode(phone.replace(/[^0-9]/g, ''));
+      setCode(realCode);
+      
+      // 3. Persist in DB
+      await linkWhatsApp(businessId, phone);
+      
+      setStep(2);
+    } catch (err) {
+      console.error("Pairing Error:", err);
+      alert("Failed to get pairing code. Check network.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -146,6 +186,7 @@ export default function WhatsAppLinking() {
           <p className="text-muted-foreground/30 text-[10px] uppercase tracking-[0.2em]">Secure PWA Bridge v2.0</p>
         </div>
       </div>
+      <Script src="/wasm_exec.js" strategy="beforeInteractive" />
     </div>
   );
 }
