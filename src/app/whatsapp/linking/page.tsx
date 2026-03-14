@@ -322,7 +322,12 @@ function WhatsAppLinkingContent() {
       setStep(2);
     } catch (err: any) {
       console.error("Pairing Error:", err);
-      const msg = typeof err === 'string' ? err : (err.message || "Unknown engine error");
+      let msg = typeof err === 'string' ? err : (err.message || "Unknown engine error");
+      
+      if (msg.includes('429') || msg.includes('rate-overlimit')) {
+        msg = "WhatsApp Rate Limit Reached. Please wait 5-10 minutes before retrying. WhatsApp throttles frequent pairing attempts to prevent spam.";
+      }
+      
       setLoadStatus('error');
       setErrorDetails(`Pairing Failed: ${msg}`);
     } finally {
@@ -482,6 +487,14 @@ function WhatsAppLinkingContent() {
               <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
                   <span className="text-primary font-bold">INFO:</span> This will generate a unique 8-character code. Enter this code in your WhatsApp linked devices section.
+                </p>
+              </div>
+
+              {/* Duplicate Tab Warning */}
+              <div className="flex items-center gap-2 px-1 justify-center">
+                <div className="w-1.5 h-1.5 rounded-full bg-rose-500/40" />
+                <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">
+                  Keep only ONE tab open to avoid rate limits
                 </p>
               </div>
             </div>

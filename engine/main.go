@@ -178,17 +178,21 @@ func GetPairingCode(this js.Value, args []js.Value) interface{} {
 				time.Sleep(100 * time.Millisecond)
 			}
 
-			fmt.Printf("Ghost: Requesting code for %s (with retries)...\n", phoneNumber)
+			fmt.Printf("Ghost: Requesting code for %s (with backoff retries)...\n", phoneNumber)
             
             var code string
             var err error
-            for attempt := 1; attempt <= 3; attempt++ {
+            backoffs := []int{2, 5, 12} // Increasing wait times in seconds
+            
+            for attempt := 0; attempt < 3; attempt++ {
                 code, err = client.PairPhone(context.Background(), phoneNumber, true, whatsmeow.PairClientChrome, "Ghost Recovery")
                 if err == nil {
                     break
                 }
-                fmt.Printf("Ghost: Pairing attempt %d failed: %v. Retrying in 2s...\n", attempt, err)
-                time.Sleep(2 * time.Second)
+                
+                waitSec := backoffs[attempt]
+                fmt.Printf("Ghost: Pairing attempt %d failed: %v. Backoff wait: %ds...\n", attempt+1, err, waitSec)
+                time.Sleep(time.Duration(waitSec) * time.Second)
             }
 
 			if err != nil {
