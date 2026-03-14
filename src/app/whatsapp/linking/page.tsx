@@ -328,14 +328,19 @@ function WhatsAppLinkingContent() {
     
     if (step === 3) {
       // Trigger Live Test Message
-      const triggerTest = async () => {
+      // Trigger Live Test Message (With Auto-Retry V1.8)
+      const triggerTest = async (attempt = 1) => {
         try {
            const cleanPhone = phone.replace(/\D/g, '');
-           console.log("Ghost: Triggering Live Test Message to", cleanPhone);
+           console.log(`Ghost: Triggering Live Test Message (Attempt ${attempt}) to`, cleanPhone);
            await window.sendGhostMessage?.(cleanPhone, "iam live");
            console.log("Ghost: SUCCESS! Test message sent.");
         } catch (err) {
-           console.error("Ghost: Test message failed:", err);
+           console.error(`Ghost: Test message failed (Attempt ${attempt}):`, err);
+           if (attempt < 2) {
+               console.log("Ghost: Waiting for socket stabilization before retry...");
+               setTimeout(() => triggerTest(attempt + 1), 3000);
+           }
         }
       };
       triggerTest();
@@ -409,6 +414,20 @@ function WhatsAppLinkingContent() {
        alert("Error scheduling test: " + err);
     } finally {
        setSchedLoading(false);
+    }
+  };
+
+  const handleMasterRefresh = async () => {
+    if (confirm("This will clear the app cache and force a fresh update. Your session will remain safe. Continue?")) {
+        try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (const registration of registrations) {
+                await registration.unregister();
+            }
+            window.location.reload();
+        } catch (err) {
+            window.location.reload();
+        }
     }
   };
 
@@ -604,31 +623,6 @@ function WhatsAppLinkingContent() {
                   </div>
                 </div>
 
-                <button 
-                  onClick={() => window.forceReconnectGhost?.()}
-                  className="w-full py-2 flex items-center justify-center gap-1.5 opacity-40 hover:opacity-100 transition-all group"
-                >
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary/50 group-hover:bg-primary transition-all" />
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Stuck? Tap to Nudge Link</span>
-                </button>
-
-                <div className="pt-4 border-t border-white/5 space-y-3">
-                  <div className="flex items-center gap-2 px-1">
-                    <div className="w-1 h-1 rounded-full bg-rose-500" />
-                    <p className="text-[8px] uppercase tracking-widest text-rose-500 font-bold">Emergency Tools</p>
-                  </div>
-                  <button 
-                    onClick={() => {
-                        if(confirm("This will completely reset the Ghost Engine. Use only if Link Nudge fails. Continue?")) {
-                            window.resetGhostEngine?.();
-                        }
-                    }}
-                    className="w-full py-3 rounded-2xl bg-rose-500/5 border border-rose-500/10 hover:bg-rose-500/10 transition-all text-rose-500 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2"
-                  >
-                    <LucideShield className="w-3 h-3" />
-                    Hard Reset Engine
-                  </button>
-                </div>
               </div>
             </div>
           )}
@@ -755,16 +749,54 @@ function WhatsAppLinkingContent() {
                   </button>
                 </div>
               </div>
+            </div>
+          )}
 
-              <div className="text-center pt-2">
-                <p className="text-[8px] text-muted-foreground/30 uppercase tracking-[0.3em]">Hardware ID: {businessId.slice(0,8)}</p>
-              </div>
+          {/* Global Emergency Tools (Visible in all linked/linking states) */}
+          {(step === 2 || step === 3 || step === 4) && (
+            <div className="mt-8 pt-6 border-t border-white/5 space-y-4 relative z-20">
+               <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1 h-1 rounded-full bg-rose-500" />
+                    <p className="text-[8px] uppercase tracking-widest text-rose-500 font-bold">Universal Emergency Tools</p>
+                  </div>
+                  <button 
+                    onClick={handleMasterRefresh}
+                    className="text-[8px] uppercase tracking-widest text-primary/50 hover:text-primary transition-all font-bold border-b border-primary/20"
+                  >
+                    Force App Update
+                  </button>
+               </div>
+
+               <div className="grid grid-cols-2 gap-3">
+                  <button 
+                    onClick={() => {
+                       console.log("Ghost: Nudge requested");
+                       window.forceReconnectGhost?.();
+                    }}
+                    className="py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-1 group active:scale-95"
+                  >
+                    <span className="text-[9px] font-bold text-white uppercase tracking-tighter">Nudge Link</span>
+                    <span className="text-[7px] text-muted-foreground uppercase">Fix "Connecting"</span>
+                  </button>
+                  <button 
+                    onClick={() => {
+                        if(confirm("Hard Reset will wipe the current engine instance. Your login will persist. Continue?")) {
+                            window.resetGhostEngine?.();
+                        }
+                    }}
+                    className="py-3 rounded-2xl bg-rose-500/5 border border-rose-500/10 hover:bg-rose-500/10 transition-all flex flex-col items-center justify-center gap-1 group active:scale-95"
+                  >
+                    <span className="text-[9px] font-bold text-rose-500 uppercase tracking-tighter">Hard Reset</span>
+                    <span className="text-[7px] text-rose-500/50 uppercase">Clear Loop Error</span>
+                  </button>
+               </div>
             </div>
           )}
         </div>
 
         {/* Footer info */}
-      <div className="text-center">
+        <div className="text-center pb-12">
           <p className="text-muted-foreground/30 text-[10px] uppercase tracking-[0.2em]">Secure PWA Bridge v2.0</p>
         </div>
       </div>
@@ -779,3 +811,4 @@ export default function WhatsAppLinking() {
     </React.Suspense>
   );
 }
+
